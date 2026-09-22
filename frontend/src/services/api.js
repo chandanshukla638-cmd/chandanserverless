@@ -5,7 +5,7 @@ export const API_BASE =
   (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')
     ? 'https://akksys.onrender.com/api'
     : typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
-    ? 'https://akksys-backend.vercel.app/api' // Default vercel backend URL (can be overridden by VITE_API_URL)
+    ? 'https://chandanserverless.vercel.app/api' // Default vercel backend URL (can be overridden by VITE_API_URL)
     : '/api');
 
 export const BACKEND_URL = API_BASE.endsWith('/api') ? API_BASE.slice(0, -4) : API_BASE;
