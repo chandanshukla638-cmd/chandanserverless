@@ -1,19 +1,22 @@
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import dotenv from 'dotenv';
 
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+dotenv.config();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+// Initialize Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'ffoul5eq',
+  api_key: process.env.CLOUDINARY_API_KEY || '799268813852669',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'WjyErUQu5BaX7Z05uWWHZAb6k_I',
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'akksys_uploads',
+    resource_type: 'auto', // Supports both images and videos
   },
 });
 

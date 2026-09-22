@@ -131,7 +131,7 @@ app.use(errorHandler);
 import { runMigrations } from './migrations/run.js';
 import { seed } from './seeds/seed.js';
 
-const start = () => {
+if (!process.env.VERCEL) {
   app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
     try {
@@ -143,9 +143,8 @@ const start = () => {
       await seed(false);
     } catch (err) {
       console.error('Database connection error:', err.message);
-      console.error('Tip: Make sure DATABASE_URL in Render is set to External Database URL or full hostname with .render.com');
     }
   });
-};
+}
 
-start();
+export default app;

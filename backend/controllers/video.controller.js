@@ -29,9 +29,10 @@ export const uploadVideo = async (req, res, next) => {
     let finalType = video_type || 'mp4';
 
     if (req.file) {
-      finalVideoUrl = `/uploads/${req.file.filename}`;
-      finalSize = (req.file.size / (1024 * 1024)).toFixed(1) + ' MB';
-      finalType = req.file.mimetype.split('/')[1] || 'mp4';
+      // If using Cloudinary, req.file.path contains the URL. If local, it might not.
+      finalVideoUrl = req.file.path || `/uploads/${req.file.filename}`;
+      finalSize = req.file.size ? (req.file.size / (1024 * 1024)).toFixed(1) + ' MB' : 'Unknown Size';
+      finalType = req.file.mimetype ? req.file.mimetype.split('/')[1] : 'mp4';
     }
 
     const result = await db.query(
@@ -55,9 +56,9 @@ export const updateVideo = async (req, res, next) => {
     let finalDuration = duration;
 
     if (req.file) {
-      finalVideoUrl = `/uploads/${req.file.filename}`;
-      finalSize = (req.file.size / (1024 * 1024)).toFixed(1) + ' MB';
-      finalType = req.file.mimetype.split('/')[1] || 'mp4';
+      finalVideoUrl = req.file.path || `/uploads/${req.file.filename}`;
+      finalSize = req.file.size ? (req.file.size / (1024 * 1024)).toFixed(1) + ' MB' : 'Unknown Size';
+      finalType = req.file.mimetype ? req.file.mimetype.split('/')[1] : 'mp4';
     }
 
     const oldResult = await db.query('SELECT video_url FROM videos WHERE id = $1', [id]);
@@ -79,9 +80,12 @@ export const updateVideo = async (req, res, next) => {
     }
 
     if (req.file && oldVideoUrl && oldVideoUrl.startsWith('/uploads/') && oldVideoUrl !== finalVideoUrl) {
-      const oldPath = path.join(__dirname, '..', oldVideoUrl);
-      fs.unlink(oldPath, () => {});
+      try {
+        const oldPath = path.join(__dirname, '..', oldVideoUrl);
+        fs.unlink(oldPath, () => {});
+      } catch(e) {}
     }
+    // Note: Cloudinary files are not deleted here, which is fine for now.
 
     res.json(result.rows[0]);
   } catch (err) {
@@ -98,9 +102,12 @@ export const deleteVideo = async (req, res, next) => {
     }
     const videoUrl = result.rows[0].video_url;
     if (videoUrl && videoUrl.startsWith('/uploads/')) {
-      const filePath = path.join(__dirname, '..', videoUrl);
-      fs.unlink(filePath, () => {});
+      try {
+        const filePath = path.join(__dirname, '..', videoUrl);
+        fs.unlink(filePath, () => {});
+      } catch(e) {}
     }
+    // Note: Cloudinary files are not deleted here, which is fine for now.
     res.json({ message: 'Video deleted successfully' });
   } catch (err) {
     next(err);
