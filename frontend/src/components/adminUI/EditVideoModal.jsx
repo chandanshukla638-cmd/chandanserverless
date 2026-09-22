@@ -85,7 +85,7 @@ const EditVideoModal = ({ show, video, onClose }) => {
         let finalUrl = videoUrl;
         
         if (urlType === 'youtube') {
-          const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+          const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
           if (ytMatch && ytMatch[1]) {
             finalUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
           }
