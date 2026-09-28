@@ -305,14 +305,14 @@ const MobileDestinationPage = () => {
         <VideoPlayer videoUrl={data.video} />
 
 
-        <div className="ld-features">
+        {/* <div className="ld-features">
           {data.features.map((f, i) => (
             <div key={i} className="ld-feat"><FaCheck className="ld-feat-icon" /><span>{f}</span></div>
           ))}
         </div>
 
 
-        <p className="ld-desc">{data.desc}</p>
+        <p className="ld-desc">{data.desc}</p> */}
 
 
         {data.ctaLink && data.ctaLink !== '#' && (
