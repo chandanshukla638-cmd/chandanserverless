@@ -140,38 +140,37 @@ const BulkQRGeneration = () => {
           let finalDataUrl = null;
           
           if (qrCanvas) {
-            const imgPad = Math.round(size * 0.05);
+            // qrCanvas is rendered at devicePixelRatio, so scale padding/text from its real width
+            const scale = qrCanvas.width / size;
+            const imgPad = Math.round(size * 0.05 * scale);
+            const finalCanvas = document.createElement('canvas');
+            const ctx = finalCanvas.getContext('2d');
+            finalCanvas.width = qrCanvas.width + imgPad * 2;
+
             if (serialNumber) {
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              const textHeight = Math.max(40, size * 0.12);
-              
-              finalCanvas.width = qrCanvas.width;
-              finalCanvas.height = qrCanvas.height + textHeight + imgPad;
-              
+              const fontSize = Math.round(Math.max(18, size * 0.08) * scale);
+              const textHeight = Math.round(fontSize * 1.4);
+
+              finalCanvas.height = imgPad + qrCanvas.height + textHeight + Math.round(imgPad / 2);
+
               ctx.fillStyle = "#ffffff";
               ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(qrCanvas, 0, imgPad);
-              
+              ctx.drawImage(qrCanvas, imgPad, imgPad);
+
               ctx.fillStyle = "#0f1629";
-              ctx.font = `bold ${Math.max(18, size * 0.08)}px Arial, sans-serif`;
+              ctx.font = `bold ${fontSize}px Arial, sans-serif`;
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
               ctx.fillText(serialNumber, finalCanvas.width / 2, imgPad + qrCanvas.height + (textHeight / 2));
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
             } else {
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              finalCanvas.width = qrCanvas.width;
               finalCanvas.height = qrCanvas.height + imgPad * 2;
-              
+
               ctx.fillStyle = "#ffffff";
               ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(qrCanvas, 0, imgPad);
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
+              ctx.drawImage(qrCanvas, imgPad, imgPad);
             }
+
+            finalDataUrl = finalCanvas.toDataURL('image/png');
           }
           
           root.unmount();
@@ -185,9 +184,119 @@ const BulkQRGeneration = () => {
     });
   };
 
+  // Renders a real vector QR (QRCodeSVG) off-screen and returns its <svg> markup
+  const generateQRSvgMarkup = (url, level, logoSrc) => {
+    return new Promise((resolve) => {
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+      document.body.appendChild(container);
+
+      import('react-dom/client').then(({ createRoot }) => {
+        const root = createRoot(container);
+        root.render(
+          <QRCodeSVG
+            value={url}
+            size={180}
+            level={level}
+            bgColor="#ffffff"
+            fgColor="#0f1629"
+            imageSettings={logoSrc ? {
+              src: logoSrc,
+              height: 36,
+              width: 36,
+              excavate: true,
+            } : undefined}
+          />
+        );
+
+        setTimeout(() => {
+          const svgEl = container.querySelector('svg');
+          if (svgEl) {
+            // Position inside the 200-wide export canvas (5% quiet zone)
+            svgEl.setAttribute('x', '10');
+            svgEl.setAttribute('y', '10');
+          }
+          const markup = svgEl ? svgEl.outerHTML : null;
+          root.unmount();
+          document.body.removeChild(container);
+          resolve(markup);
+        }, 100);
+      }).catch(() => {
+        document.body.removeChild(container);
+        resolve(null);
+      });
+    });
+  };
+
+  // Builds one A4 PDF with multiple QR codes per page (grid layout, aspect ratio preserved)
+  const buildA4Pdf = async (level, logoSrc) => {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 5;
+    const cols = 4;
+    const rows = 5;
+    const cellW = (pageW - 2 * margin) / cols;
+    const cellH = (pageH - 2 * margin) / rows;
+    const perPage = cols * rows;
+    const offsetX = (pageW - cols * cellW) / 2;
+    const offsetY = (pageH - rows * cellH) / 2;
+    const pad = 3;
+
+    for (let page = 0; page < bulkData.length; page += perPage) {
+      if (page > 0) pdf.addPage();
+
+      const batch = bulkData.slice(page, page + perPage);
+      const results = await Promise.all(batch.map(item => {
+        const url = item.qr_url ? `https://${item.qr_url}` : '';
+        return generateQRDataUrl(url, 300, level, logoSrc, item.qr_serial_number);
+      }));
+
+      results.forEach((dataUrl, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = offsetX + col * cellW;
+        const y = offsetY + row * cellH;
+
+        // Light cut guide around each cell
+        pdf.setDrawColor(210, 210, 210);
+        pdf.setLineWidth(0.2);
+        pdf.rect(x, y, cellW, cellH);
+
+        if (!dataUrl) return;
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const boxW = cellW - pad * 2;
+        const boxH = cellH - pad * 2;
+        const ratio = Math.min(boxW / imgProps.width, boxH / imgProps.height);
+        const w = imgProps.width * ratio;
+        const h = imgProps.height * ratio;
+        pdf.addImage(dataUrl, 'PNG', x + (cellW - w) / 2, y + (cellH - h) / 2, w, h);
+      });
+    }
+
+    return pdf;
+  };
+
   const handleDownloadAll = async () => {
     if (!generated || bulkData.length === 0) return;
     setDownloading(true);
+
+    if (qrFormat === 'PDF') {
+      try {
+        const logoSrc = brandLogo === 'AKKSYS Logo'
+          ? 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="12" fill="#00C8FF"/><text x="50" y="62" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">AK</text></svg>')
+          : customLogo;
+        const pdf = await buildA4Pdf(getLevel(), logoSrc);
+        pdf.save('akksys_qr_codes.pdf');
+        toast.success(`${bulkData.length} QR codes downloaded as PDF!`);
+      } catch (err) {
+        console.error('Download failed', err);
+        toast.error('Failed to download QR codes');
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
 
     try {
       const zip = new JSZip();
@@ -199,46 +308,24 @@ const BulkQRGeneration = () => {
         : customLogo;
 
       if (qrFormat === 'SVG') {
-        for (let i = 0; i < bulkData.length; i++) {
-          const item = bulkData[i];
-          const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 ${item.qr_serial_number ? '220' : '200'}" width="${size}" height="${item.qr_serial_number ? size * 1.1 : size}">` +
-            `<rect width="200" height="${item.qr_serial_number ? '220' : '200'}" fill="white"/>` +
-            `<g id="qr"></g>` +
-            (logoSrc ? `<rect x="70" y="70" width="60" height="60" rx="8" fill="white"/><image x="74" y="74" width="52" height="52" href="${logoSrc}"/>` : '') +
-            (item.qr_serial_number ? `<text x="100" y="212" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0f1629" text-anchor="middle">${item.qr_serial_number}</text>` : '') +
-            `</svg>`;
-          const safeName = item.name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
-          folder.file(`${safeName}_${i + 1}.svg`, svgStr);
-        }
-      } else if (qrFormat === 'PDF') {
-        const batchSize = 10;
+        const escapeXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const batchSize = 20;
         for (let b = 0; b < bulkData.length; b += batchSize) {
           const batch = bulkData.slice(b, b + batchSize);
-          const promises = batch.map(item => {
+          const results = await Promise.all(batch.map(item => {
             const url = item.qr_url ? `https://${item.qr_url}` : '';
-            return generateQRDataUrl(url, size, level, logoSrc, item.qr_serial_number);
-          });
-          const results = await Promise.all(promises);
-          results.forEach((dataUrl, i) => {
-            if (dataUrl) {
-              const safeName = batch[i].name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
-              const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [80, 80],
-              });
-              const imgProps = pdf.getImageProperties(dataUrl);
-              const pdfWidth = pdf.internal.pageSize.getWidth();
-              const pdfHeight = pdf.internal.pageSize.getHeight();
-              const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
-              const w = imgProps.width * ratio;
-              const h = imgProps.height * ratio;
-              const x = (pdfWidth - w) / 2;
-              const y = (pdfHeight - h) / 2;
-              pdf.addImage(dataUrl, 'PNG', x, y, w, h);
-              const pdfBase64 = pdf.output('datauristring').split(',')[1];
-              folder.file(`${safeName}_${b + i + 1}.pdf`, pdfBase64, { base64: true });
-            }
+            return generateQRSvgMarkup(url, level, logoSrc);
+          }));
+          results.forEach((qrMarkup, i) => {
+            if (!qrMarkup) return;
+            const item = batch[i];
+            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 ${item.qr_serial_number ? '220' : '200'}" width="${size}" height="${item.qr_serial_number ? size * 1.1 : size}">` +
+              `<rect width="200" height="${item.qr_serial_number ? '220' : '200'}" fill="white"/>` +
+              qrMarkup +
+              (item.qr_serial_number ? `<text x="100" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0f1629" text-anchor="middle">${escapeXml(item.qr_serial_number)}</text>` : '') +
+              `</svg>`;
+            const safeName = item.name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
+            folder.file(`${safeName}_${b + i + 1}.svg`, svgStr);
           });
         }
       } else {
@@ -280,42 +367,12 @@ const BulkQRGeneration = () => {
     setPrintingA4(true);
 
     try {
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = 210;
-      const pageH = 297;
-      const margin = 10;
-      const cellW = 55;
-      const cellH = 65;
-      const cols = Math.floor((pageW - 2 * margin) / cellW);
-      const rows = Math.floor((pageH - 2 * margin) / cellH);
-      const perPage = cols * rows;
-
       const level = getLevel();
       const logoSrc = brandLogo === 'AKKSYS Logo'
         ? 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="12" fill="#00C8FF"/><text x="50" y="62" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">AK</text></svg>')
         : customLogo;
 
-      for (let page = 0; page < bulkData.length; page += perPage) {
-        if (page > 0) pdf.addPage();
-
-        const batch = bulkData.slice(page, page + perPage);
-        const promises = batch.map(item => {
-          const url = item.qr_url ? `https://${item.qr_url}` : '';
-          return generateQRDataUrl(url, 300, level, logoSrc, item.qr_serial_number);
-        });
-        const results = await Promise.all(promises);
-
-        results.forEach((dataUrl, i) => {
-          if (!dataUrl) return;
-          const col = i % cols;
-          const row = Math.floor(i / cols);
-          const x = margin + col * cellW;
-          const y = margin + row * cellH;
-
-          pdf.addImage(dataUrl, 'PNG', x + 2, y + 2, cellW - 4, cellH - 4);
-        });
-      }
-
+      const pdf = await buildA4Pdf(level, logoSrc);
       pdf.save('akksys_qr_a4_sheet.pdf');
       toast.success('A4 PDF downloaded!');
     } catch (err) {

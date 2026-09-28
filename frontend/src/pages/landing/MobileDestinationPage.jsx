@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import api, { BACKEND_URL } from '../../services/api';
 import {
   FaArrowRight, FaShareAlt, FaHeart, FaExclamationTriangle,
-  FaRedo, FaCheckCircle, FaStar, FaFire, FaClock, FaPlay,
+  FaRedo, FaCheckCircle, FaStar, FaFire, FaPlay,
   FaCheck, FaShieldAlt, FaQrcode, FaUser, FaPhone
 } from 'react-icons/fa';
 import './MobileDestinationPage.css';
@@ -272,7 +272,6 @@ const MobileDestinationPage = () => {
             <span className="ld-brand-dot">
               <FaQrcode size={16} color="#fff" />
             </span>
-            {data.brand}
           </div>
           {/* <NavLink to="/" className="ld-brand">
   <span className="ld-brand-dot">
@@ -316,10 +315,11 @@ const MobileDestinationPage = () => {
         <p className="ld-desc">{data.desc}</p>
 
 
-        <a href={data.ctaLink} onClick={handleCTAClick} className="thm-btn" style={{ padding: "12px 0" }}>
-          <span>{data.cta}</span>  <FaArrowRight className="ld-cta-arrow" />
-        </a>
-        <p className="ld-urgency"><FaClock /> Offer ends soon!</p>
+        {data.ctaLink && data.ctaLink !== '#' && (
+          <a href={data.ctaLink} onClick={handleCTAClick} className="thm-btn" style={{ padding: "12px 0", marginBottom: "14px" }}>
+            <span>{data.cta}</span>  <FaArrowRight className="ld-cta-arrow" />
+          </a>
+        )}
 
 
         <div className="ld-bottom">

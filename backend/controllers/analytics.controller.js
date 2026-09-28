@@ -157,6 +157,7 @@ export const getQRDetailAnalytics = async (req, res, next) => {
        )
        SELECT 
          to_char(d.date, 'Dy') as day,
+         to_char(d.date, 'DD Mon') as date_label,
          (SELECT COUNT(*) FROM scan_events WHERE date(scanned_at) = d.date AND qr_id = $1) as scans,
          (SELECT COUNT(*) FROM cta_clicks WHERE date(clicked_at) = d.date AND qr_id = $1) as clicks
        FROM dates d
@@ -201,12 +202,68 @@ export const getQRDetailAnalytics = async (req, res, next) => {
     res.json({
       weeklyData: weeklyResult.rows.map(r => ({
         day: r.day,
+        date: r.date_label,
         scans: parseInt(r.scans),
         clicks: parseInt(r.clicks)
       })),
       deviceData,
       locations
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Date-wise scans for a single QR. ?days=7|30|90, or ?days=all (from QR creation / first scan)
+export const getQRDailyAnalytics = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const allowedDays = [7, 30, 90];
+    const days = allowedDays.includes(parseInt(req.query.days)) ? parseInt(req.query.days) : null;
+    const allTime = req.query.days === 'all';
+    const rangeDays = allTime ? null : (days || 30);
+
+    const result = await db.query(
+      `WITH bounds AS (
+         SELECT CASE
+           WHEN $2::int IS NULL THEN COALESCE(
+             LEAST(
+               (SELECT MIN(date(scanned_at)) FROM scan_events WHERE qr_id = $1),
+               (SELECT date(created_at) FROM qr_codes WHERE id = $1)
+             ),
+             current_date
+           )
+           ELSE current_date - ($2::int - 1)
+         END AS start_date
+       ),
+       days AS (
+         SELECT generate_series((SELECT start_date FROM bounds), current_date, interval '1 day')::date AS date
+       ),
+       s AS (
+         SELECT date(scanned_at) AS d, COUNT(*) AS scans, COUNT(DISTINCT session_id) AS unique_scans
+         FROM scan_events WHERE qr_id = $1 GROUP BY 1
+       ),
+       c AS (
+         SELECT date(clicked_at) AS d, COUNT(*) AS clicks
+         FROM cta_clicks WHERE qr_id = $1 GROUP BY 1
+       )
+       SELECT to_char(days.date, 'YYYY-MM-DD') AS date,
+         COALESCE(s.scans, 0) AS scans,
+         COALESCE(s.unique_scans, 0) AS unique_scans,
+         COALESCE(c.clicks, 0) AS clicks
+       FROM days
+       LEFT JOIN s ON s.d = days.date
+       LEFT JOIN c ON c.d = days.date
+       ORDER BY days.date DESC`,
+      [id, rangeDays]
+    );
+
+    res.json(result.rows.map(r => ({
+      date: r.date,
+      scans: parseInt(r.scans),
+      unique: parseInt(r.unique_scans),
+      clicks: parseInt(r.clicks),
+    })));
   } catch (err) {
     next(err);
   }

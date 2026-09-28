@@ -28,13 +28,44 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
     { value: '1200', label: '1200x1200', desc: 'Print' },
   ];
 
+  // Equal quiet zone on all sides + tight serial-number strip below the QR.
+  // `scale` = real canvas px per requested px (canvas is rendered at devicePixelRatio).
+  const getLayout = (qrPx, scale = 1) => {
+    const pad = Math.round(sizeNum * 0.05 * scale);
+    const fontSize = Math.round(Math.max(14, sizeNum * 0.05) * scale);
+    const textHeight = qrSerialNumber ? Math.round(fontSize * 1.4) : 0;
+    const width = qrPx + pad * 2;
+    const height = qrSerialNumber
+      ? pad + qrPx + textHeight + Math.round(pad / 2)
+      : qrPx + pad * 2;
+    return { pad, fontSize, textHeight, width, height };
+  };
+
+  const composeCanvas = (canvas) => {
+    const { pad, fontSize, textHeight, width, height } = getLayout(canvas.width, canvas.width / sizeNum);
+    const finalCanvas = document.createElement('canvas');
+    const ctx = finalCanvas.getContext('2d');
+    finalCanvas.width = width;
+    finalCanvas.height = height;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(canvas, pad, pad);
+
+    if (qrSerialNumber) {
+      ctx.fillStyle = "#0f1629";
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(qrSerialNumber, width / 2, pad + canvas.height + (textHeight / 2));
+    }
+    return finalCanvas.toDataURL('image/png');
+  };
+
+  const escapeXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const downloadSvg = (svgString, fileName) => {
-    const sized = svgString
-      .replace(/<svg[^>]*>/, (match) => match
-        .replace(/width="[^"]*"/, `width="${sizeNum}"`)
-        .replace(/height="[^"]*"/, `height="${sizeNum}"`)
-      );
-    const blob = new Blob([sized], { type: 'image/svg+xml;charset=utf-8' });
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -47,7 +78,7 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
     const safeName = (qrName || 'qrcode').replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
 
     if (format === 'svg') {
-      // Generate SVG by rendering QR on canvas, then converting to SVG
+      // Real vector QR (QRCodeSVG) with equal padding and serial number below
       const container = document.createElement('div');
       container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
       document.body.appendChild(container);
@@ -55,7 +86,7 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
       import('react-dom/client').then(({ createRoot }) => {
         const root = createRoot(container);
         root.render(
-          <QRCodeCanvas
+          <QRCodeSVG
             value={qrValue}
             size={sizeNum}
             level="H"
@@ -71,48 +102,18 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
         );
 
         setTimeout(() => {
-          const canvas = container.querySelector('canvas');
-          if (canvas) {
-            let finalDataUrl = canvas.toDataURL('image/png');
-            const imgPad2 = Math.round(sizeNum * 0.05);
-            let finalHeight = sizeNum + imgPad2 * 2;
-            
-            if (qrSerialNumber) {
-              const textHeight = Math.max(30, sizeNum * 0.1);
-              finalHeight = sizeNum + textHeight + imgPad2;
-              
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              finalCanvas.width = canvas.width;
-              finalCanvas.height = canvas.height + textHeight + imgPad2;
-              
-              ctx.fillStyle = "#ffffff";
-              ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(canvas, 0, imgPad2);
-              
-              ctx.fillStyle = "#0f1629";
-              ctx.font = `bold ${Math.max(14, sizeNum * 0.05)}px Arial, sans-serif`;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(qrSerialNumber, finalCanvas.width / 2, imgPad2 + canvas.height + (textHeight / 2));
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
-            } else {
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              finalCanvas.width = canvas.width;
-              finalCanvas.height = canvas.height + imgPad2 * 2;
-              
-              ctx.fillStyle = "#ffffff";
-              ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(canvas, 0, imgPad2);
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
-            }
-            
-            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${sizeNum}" height="${finalHeight}" viewBox="0 0 ${sizeNum} ${finalHeight}">` +
-              `<rect width="${sizeNum}" height="${finalHeight}" fill="white"/>` +
-              `<image href="${finalDataUrl}" width="${sizeNum}" height="${finalHeight}"/>` +
+          const svgEl = container.querySelector('svg');
+          if (svgEl) {
+            const { pad, fontSize, textHeight, width, height } = getLayout(sizeNum);
+            svgEl.setAttribute('x', String(pad));
+            svgEl.setAttribute('y', String(pad));
+
+            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+              `<rect width="${width}" height="${height}" fill="white"/>` +
+              svgEl.outerHTML +
+              (qrSerialNumber
+                ? `<text x="${width / 2}" y="${pad + sizeNum + textHeight / 2}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="#0f1629" text-anchor="middle" dominant-baseline="middle">${escapeXml(qrSerialNumber)}</text>`
+                : '') +
               `</svg>`;
             downloadSvg(svgStr, safeName);
           }
@@ -147,39 +148,8 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
         setTimeout(() => {
           const canvas = container.querySelector('canvas');
           if (canvas) {
-            let finalDataUrl = canvas.toDataURL('image/png');
-            const imgPad = Math.round(sizeNum * 0.05);
-            if (qrSerialNumber) {
-              const textHeight = Math.max(30, sizeNum * 0.1);
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              finalCanvas.width = canvas.width;
-              finalCanvas.height = canvas.height + textHeight + imgPad;
-              
-              ctx.fillStyle = "#ffffff";
-              ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(canvas, 0, imgPad);
-              
-              ctx.fillStyle = "#0f1629";
-              ctx.font = `bold ${Math.max(14, sizeNum * 0.05)}px Arial, sans-serif`;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(qrSerialNumber, finalCanvas.width / 2, imgPad + canvas.height + (textHeight / 2));
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
-            } else {
-              const finalCanvas = document.createElement('canvas');
-              const ctx = finalCanvas.getContext('2d');
-              finalCanvas.width = canvas.width;
-              finalCanvas.height = canvas.height + imgPad * 2;
-              
-              ctx.fillStyle = "#ffffff";
-              ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-              ctx.drawImage(canvas, 0, imgPad);
-              
-              finalDataUrl = finalCanvas.toDataURL('image/png');
-            }
-            
+            const finalDataUrl = composeCanvas(canvas);
+
             if (format === 'pdf') {
               const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 80] });
               const imgProps = pdf.getImageProperties(finalDataUrl);
@@ -247,7 +217,7 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
                     )}
                   </div>
                   {qrSerialNumber && (
-                    <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginTop: '8px', color: '#fff' }}>
+                    <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginTop: '0px', color: '#fff' }}>
                       {qrSerialNumber}
                     </div>
                   )}
@@ -286,6 +256,11 @@ const QRDownloadModal = ({ show, onClose, qrName, qrUrl, logoUrl, qrSerialNumber
                     )}
 
                   </div>
+                  {qrSerialNumber && (
+                    <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginTop: '0px', color: '#fff' }}>
+                      {qrSerialNumber}
+                    </div>
+                  )}
                   <p className="qrd-preview-url">
                     <a href={`https://${qrUrl || 'akksys.io/q/xk9p2m'}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} className='preview-click-btn'>
                       {qrUrl || 'akksys.io/q/xk9p2m'}

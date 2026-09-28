@@ -4,7 +4,7 @@ import Chart from 'react-apexcharts';
 import {
   FaDownload, FaEdit, FaTrash, FaArrowLeft, FaCopy, FaEye,
   FaChartLine, FaMousePointer, FaGlobeAsia,
-  FaHistory, FaToggleOn, FaToggleOff, FaArrowUp, FaBox
+  FaHistory, FaToggleOn, FaToggleOff, FaArrowUp, FaBox, FaCalendarAlt
 } from 'react-icons/fa';
 import { QRCodeCanvas } from 'qrcode.react';
 import QRDownloadModal from '../../components/adminUI/QRDownloadModal';
@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import Loader from './Loader';
 import '../../styles/Overview.css';
 import '../../styles/QRDetail.css';
+import '../../styles/DynamicQR.css';
 
 const QRDetail = () => {
   const { qrId } = useParams();
@@ -26,6 +27,9 @@ const QRDetail = () => {
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [analyticsData, setAnalyticsData] = useState({ weeklyData: [], deviceData: [], locations: [] });
+  const [dailyRange, setDailyRange] = useState('30');
+  const [dailyData, setDailyData] = useState([]);
+  const [dailyLoading, setDailyLoading] = useState(false);
   const logoInputRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -147,6 +151,21 @@ const QRDetail = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const qrInternalId = qrData?.id;
+  useEffect(() => {
+    if (!qrInternalId) return;
+    let cancelled = false;
+    setDailyLoading(true);
+    api.get(`/analytics/qr/${qrInternalId}/daily`, { params: { days: dailyRange } })
+      .then(res => { if (!cancelled) setDailyData(res.data || []); })
+      .catch(err => {
+        console.error('Failed to fetch date-wise scans', err);
+        if (!cancelled) setDailyData([]);
+      })
+      .finally(() => { if (!cancelled) setDailyLoading(false); });
+    return () => { cancelled = true; };
+  }, [qrInternalId, dailyRange]);
 
   const handleToggle = async () => {
     if (!qrData) return;
@@ -274,7 +293,7 @@ const QRDetail = () => {
     dataLabels: { enabled: false },
     stroke: { show: true, width: 0 },
     xaxis: {
-      categories: weeklyData.map(d => d.day),
+      categories: weeklyData.map(d => d.date || d.day),
       labels: { style: { fontSize: '12px', fontWeight: 500, colors: '#49636F' } },
       axisBorder: { show: false },
       axisTicks: { show: false },
@@ -694,13 +713,61 @@ const QRDetail = () => {
                       colors: ['#00C8FF'],
                       xaxis: {
                         ...chartOptions.xaxis,
-                        categories: weeklyData.map(d => d.day),
+                        categories: weeklyData.map(d => d.date || d.day),
                       },
                     }}
                     series={[{ name: 'Clicks', data: weeklyData.map(d => d.clicks) }]}
                     type="bar"
                     height={120}
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Date-wise Scans */}
+            <div className="col-12 mb-3">
+              <div className="ov-card h-auto">
+                <div className="ov-card-header">
+                  <div>
+                    <h6 className="ov-card-title"><FaCalendarAlt className="me-2" /> Date-wise Scans</h6>
+                    <p className="ov-card-subtitle">
+                      {dailyData.reduce((sum, d) => sum + d.scans, 0).toLocaleString()} scans in selected range
+                    </p>
+                  </div>
+                  <select className="ov-date-select" value={dailyRange} onChange={(e) => setDailyRange(e.target.value)}>
+                    <option value="7">Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="all">All Time</option>
+                  </select>
+                </div>
+                <div className="dq-table-wrapper" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                  <table className="dq-table" style={{ minWidth: '480px' }}>
+                    <thead>
+                      <tr>
+                        <th className="dq-th" style={{ position: 'sticky', top: 0, zIndex: 1 }}>Date</th>
+                        <th className="dq-th" style={{ position: 'sticky', top: 0, zIndex: 1 }}>Scans</th>
+                        <th className="dq-th" style={{ position: 'sticky', top: 0, zIndex: 1 }}>Unique</th>
+                        <th className="dq-th" style={{ position: 'sticky', top: 0, zIndex: 1 }}>CTA Clicks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyLoading ? (
+                        <tr><td colSpan="4" className="text-center" style={{ color: '#ddd', height: '120px' }}>Loading...</td></tr>
+                      ) : dailyData.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center" style={{ color: '#ddd', height: '120px' }}>No scan data available yet.</td></tr>
+                      ) : (
+                        dailyData.map((d) => (
+                          <tr key={d.date} className="dq-tr" style={d.scans === 0 ? { opacity: 0.5 } : undefined}>
+                            <td>{new Date(`${d.date}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                            <td>{d.scans.toLocaleString()}</td>
+                            <td>{d.unique.toLocaleString()}</td>
+                            <td>{d.clicks.toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
