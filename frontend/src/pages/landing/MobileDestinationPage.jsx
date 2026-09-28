@@ -225,7 +225,7 @@ const MobileDestinationPage = () => {
 
             <form onSubmit={handleLeadSubmit} >
               <div className=" custom-frm-bx">
-                 <label className=""><FaUser className="me-1 ld-form-icon" />Your Name </label>
+                <label className=""><FaUser className="me-1 ld-form-icon" />Your Name </label>
                 <input
                   type="text"
                   name="name"
@@ -238,7 +238,7 @@ const MobileDestinationPage = () => {
               </div>
 
               <div className="custom-frm-bx">
-                 <label className=""><FaPhone className="me-1 ld-form-icon" /> Your  Phone </label>
+                <label className=""><FaPhone className="me-1 ld-form-icon" /> Your  Phone </label>
                 <input
                   type="tel"
                   name="phone"
@@ -277,12 +277,6 @@ const MobileDestinationPage = () => {
               <FaQrcode size={16} color="#fff" />
             </span>
           </div>
-          {/* <NavLink to="/" className="ld-brand">
-  <span className="ld-brand-dot">
-    <FaQrcode size={16} color="#fff" />
-  </span>
-  {data.brand}
-</NavLink> */}
           <button className={`ld-heart ${liked ? 'active' : ''}`} onClick={handleLikeToggle}>
             <FaHeart /> <span className="ld-heart-count">{data.likes}</span>
           </button>

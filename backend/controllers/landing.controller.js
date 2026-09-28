@@ -64,6 +64,15 @@ export const getLandingData = async (req, res, next) => {
       }
     }
 
+    // Total scans for this QR (includes the scan just recorded above)
+    let totalScans = 0;
+    try {
+      const countResult = await db.query('SELECT COUNT(*) FROM scan_events WHERE qr_id = $1', [qr.id]);
+      totalScans = parseInt(countResult.rows[0].count) || 0;
+    } catch (countErr) {
+      console.error('Failed to count scans:', countErr.message);
+    }
+
     res.json({
       name: qr.name,
       brand: qr.name,
@@ -80,7 +89,7 @@ export const getLandingData = async (req, res, next) => {
       rating: parseFloat(campaign?.rating || 4.8),
       reviews: parseInt(campaign?.reviews || 324),
       likes: parseInt(campaign?.likes || 0),
-      scans: parseInt(qr.total_scans || 0),
+      scans: totalScans,
       version_id: version?.id || null,
     });
   } catch (err) {
