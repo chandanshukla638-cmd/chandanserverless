@@ -40,7 +40,7 @@ export const getLandingData = async (req, res, next) => {
     const ip = req.ip || req.connection?.remoteAddress || '';
     const device = detectDevice(userAgent);
     const location = await detectLocation(ip);
-    const sessionId = req.headers['x-session-id'] || crypto.randomUUID();
+    const sessionId = req.headers['x-session-id'] || crypto.createHash('sha256').update(`${ip}|${userAgent}`).digest('hex');
 
     if (version) {
       try {
@@ -96,7 +96,7 @@ export const trackCTAClick = async (req, res, next) => {
     const ip = req.ip || req.connection?.remoteAddress || '';
     const device = detectDevice(userAgent);
     const location = await detectLocation(ip);
-    const sessionId = req.headers['x-session-id'] || crypto.randomUUID();
+    const sessionId = req.headers['x-session-id'] || crypto.createHash('sha256').update(`${ip}|${userAgent}`).digest('hex');
 
     const versionResult = await db.query(
       `SELECT v.cta_destination, c.qr_id as numeric_qr_id 

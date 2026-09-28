@@ -15,7 +15,27 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Stable per-browser visitor id, used by the backend to count unique scans/clicks
+const getVisitorId = () => {
+  try {
+    let id = localStorage.getItem('akksys_visitor_id');
+    if (!id) {
+      id = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem('akksys_visitor_id', id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+};
+
 api.interceptors.request.use((config) => {
+  const visitorId = getVisitorId();
+  if (visitorId) {
+    config.headers['X-Session-Id'] = visitorId;
+  }
   const token = localStorage.getItem('akksys_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
