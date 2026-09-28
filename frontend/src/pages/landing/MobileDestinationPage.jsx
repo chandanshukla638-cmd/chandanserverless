@@ -6,6 +6,7 @@ import {
   FaRedo, FaCheckCircle, FaStar, FaFire, FaPlay,
   FaCheck, FaShieldAlt, FaQrcode, FaUser, FaPhone
 } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import './MobileDestinationPage.css';
 
 const LoadingScreen = () => (
@@ -103,8 +104,10 @@ const MobileDestinationPage = () => {
     setFormSubmitting(true);
     try {
       await api.post(`/leads/submit/${qrId}`, leadForm);
+      toast.success('Thank you! Your details have been submitted.');
       setFormSubmitted(true);
     } catch {
+      toast.error('Could not save your details. Continuing to page.');
       setFormSubmitted(true);
     } finally {
       setFormSubmitting(false);
@@ -112,6 +115,7 @@ const MobileDestinationPage = () => {
   };
 
   const handleSkip = () => {
+    toast.info('Form skipped. Continuing to page.');
     setFormSkipped(true);
   };
 

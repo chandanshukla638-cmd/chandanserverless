@@ -35,7 +35,7 @@ const Notifications = () => {
     const fetchNotifs = async () => {
       try {
         const res = await api.get('/user/admin-notifications?limit=50');
-        const formatted = res.data.map((item, idx) => {
+        const formatted = res.data.map((item) => {
           let icon, iconBg, text;
           if (item.type === 'scan') {
             icon = <FaQrcode />;
@@ -58,7 +58,7 @@ const Notifications = () => {
           else if (diffDays > 0) timeStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 
           return {
-            id: `${item.type}-${item.id}-${idx}`,
+            id: `${item.type}-${item.id}`,
             icon,
             iconBg,
             text,

@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaSearch, FaBell, FaAngleDown, FaBars, FaTruck, FaQrcode, FaCalendarCheck, FaChartLine, FaUserPlus, FaUser, FaCog, FaSignOutAlt, FaQuestionCircle } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 const TopBar = ({ _title, onToggleSidebar }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -52,11 +53,13 @@ const TopBar = ({ _title, onToggleSidebar }) => {
 
   const [seenIds, setSeenIds] = useState(() => getSeenIds());
 
+  // Refetch on every admin page change so the badge stays current
   useEffect(() => {
     const fetchNotifs = async () => {
       try {
-        const res = await api.get('/user/admin-notifications');
-        const formatted = res.data.map((item, idx) => {
+        const res = await api.get('/user/admin-notifications?limit=50');
+        setSeenIds(getSeenIds());
+        const formatted = res.data.map((item) => {
           let icon, iconBg, text;
           if (item.type === 'scan') {
             icon = <FaQrcode />;
@@ -79,7 +82,7 @@ const TopBar = ({ _title, onToggleSidebar }) => {
           else if (diffDays > 0) timeStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 
           return {
-            id: `${item.type}-${item.id}-${idx}`,
+            id: `${item.type}-${item.id}`,
             icon,
             iconBg,
             text,
@@ -92,7 +95,7 @@ const TopBar = ({ _title, onToggleSidebar }) => {
       }
     };
     fetchNotifs();
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -142,6 +145,7 @@ const TopBar = ({ _title, onToggleSidebar }) => {
 
   const visibleNotifications = notifications.filter(n => !seenIds.includes(n.id));
   const unreadCount = visibleNotifications.length;
+  const dropdownNotifications = visibleNotifications.slice(0, 6);
 
   return (
     <header className="admin-topbar d-flex justify-content-between align-items-center sticky-top topbar-header">
@@ -214,10 +218,10 @@ const TopBar = ({ _title, onToggleSidebar }) => {
                   <span className="notif-dropdown-count">{unreadCount} New</span>
                 </div>
                 <div className="notif-dropdown-list">
-                  {visibleNotifications.length === 0 ? (
+                  {dropdownNotifications.length === 0 ? (
                     <div className="notif-dropdown-empty">No new notifications</div>
                   ) : (
-                    visibleNotifications.map((notif) => (
+                    dropdownNotifications.map((notif) => (
                       <div key={notif.id} className="notif-dropdown-item notif-dropdown-item-unread" onClick={() => markAsSeen(notif.id)}>
                         <span className="notif-dropdown-unread-dot"></span>
                         <div className="notif-item-icon" style={{ background: `${notif.iconBg}15`, color: notif.iconBg }}>

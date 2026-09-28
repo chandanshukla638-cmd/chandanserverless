@@ -3,7 +3,7 @@ import { comparePassword, hashPassword } from '../utils/hashPassword.js';
 
 export const getAdminNotifications = async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 6;
+    const limit = Math.min(parseInt(req.query.limit) || 6, 100);
     const scans = await db.query(
       `SELECT se.id, 'scan' as type, se.scanned_at as time, q.name as qr_name, se.city 
        FROM scan_events se 
