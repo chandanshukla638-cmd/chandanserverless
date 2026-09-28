@@ -239,7 +239,7 @@ const CampaignHistory = () => {
                     <div className="ch-td-meta">
                       <FaCalendarAlt className="ch-td-meta-icon" />
                       <div>
-                        <span className="ch-td-meta-text">{campaign.start_date ? new Date(campaign.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
+                        <span className="ch-td-meta-text">{(campaign.start_date || campaign.created_at) ? new Date(campaign.start_date || campaign.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
                         <span className="ch-td-meta-sub">{campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Present'}</span>
                       </div>
                     </div>

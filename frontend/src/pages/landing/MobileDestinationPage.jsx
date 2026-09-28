@@ -138,7 +138,7 @@ const MobileDestinationPage = () => {
           ctaLink: landingRes.data.cta_url || '#',
           scans: parseInt(landingRes.data.scans) || 0,
           likes: parseInt(landingRes.data.likes) || 0,
-          rating: landingRes.data.rating || 5.0,
+          rating: landingRes.data.rating ?? 5.0,
           reviews: landingRes.data.reviews || 0,
           badge: landingRes.data.badge || '',
           features: landingRes.data.features || [],

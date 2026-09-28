@@ -131,12 +131,20 @@ export const getCampaignById = async (req, res, next) => {
 export const updateCampaign = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, status, headline, tagline, badge, video_type, video_url, cta_text, cta_destination } = req.body;
+    const { name, status, headline, tagline, badge, video_type, video_url, cta_text, cta_destination, rating, reviews } = req.body;
+
+    // Landing page rating (0-5, one decimal) and reviews count (>= 0). Invalid/missing values keep the existing ones.
+    const ratingNum = rating === undefined || rating === null || rating === '' ? NaN : Number(rating);
+    const safeRating = Number.isFinite(ratingNum) && ratingNum >= 0 && ratingNum <= 5 ? Math.round(ratingNum * 10) / 10 : null;
+    const reviewsNum = reviews === undefined || reviews === null || reviews === '' ? NaN : Number(reviews);
+    const safeReviews = Number.isInteger(reviewsNum) && reviewsNum >= 0 ? reviewsNum : null;
+
     const result = await db.query(
-      `UPDATE campaigns SET name = COALESCE($1, name), status = COALESCE($2, status), 
-       headline = COALESCE($3, headline), tagline = COALESCE($4, tagline), badge = COALESCE($5, badge), 
-       updated_at = NOW() WHERE id = $6 RETURNING *`,
-      [name, status, headline, tagline, badge, id]
+      `UPDATE campaigns SET name = COALESCE($1, name), status = COALESCE($2, status),
+       headline = COALESCE($3, headline), tagline = COALESCE($4, tagline), badge = COALESCE($5, badge),
+       rating = COALESCE($6, rating), reviews = COALESCE($7, reviews),
+       updated_at = NOW() WHERE id = $8 RETURNING *`,
+      [name, status, headline, tagline, badge, safeRating, safeReviews, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Campaign not found' });

@@ -27,6 +27,8 @@ const EditCampaign = () => {
     headline: '',
     tagline: '',
     badge: '',
+    rating: '',
+    reviews: '',
     status: 'active'
   });
 
@@ -50,6 +52,8 @@ const EditCampaign = () => {
         headline: camp.headline || '',
         tagline: camp.tagline || '',
         badge: camp.badge || '',
+        rating: camp.rating != null ? String(parseFloat(camp.rating)) : '',
+        reviews: camp.reviews != null ? String(camp.reviews) : '',
         status: camp.status || 'active'
       });
       
@@ -101,6 +105,20 @@ const EditCampaign = () => {
       toast.error('Campaign name is required');
       return;
     }
+    if (formData.rating !== '') {
+      const r = Number(formData.rating);
+      if (!Number.isFinite(r) || r < 0 || r > 5) {
+        toast.error('Rating must be between 0 and 5');
+        return;
+      }
+    }
+    if (formData.reviews !== '') {
+      const rv = Number(formData.reviews);
+      if (!Number.isInteger(rv) || rv < 0) {
+        toast.error('Reviews must be a whole number (0 or more)');
+        return;
+      }
+    }
     setSaving(true);
     try {
       const selectedVid = videoOptions.find(v => v.id === selectedVideo);
@@ -109,6 +127,8 @@ const EditCampaign = () => {
         headline: formData.headline,
         tagline: formData.tagline,
         badge: formData.badge,
+        rating: formData.rating === '' ? undefined : Number(formData.rating),
+        reviews: formData.reviews === '' ? undefined : Number(formData.reviews),
         status: formData.status,
         video_type: formData.videoType,
         video_url: formData.videoType === 'library' ? (selectedVid?.url || selectedVid?.video_url || null) : formData.videoUrl,
@@ -345,6 +365,32 @@ const EditCampaign = () => {
                     value={formData.tagline}
                     onChange={(e) => handleChange('tagline', e.target.value)}
                   />
+                </div>
+                <div className="col-md-6">
+                  <label className="cmp-label">Rating (0 - 5)</label>
+                  <input
+                    type="number"
+                    className="cmp-input"
+                    placeholder="e.g., 4.5"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={formData.rating}
+                    onChange={(e) => handleChange('rating', e.target.value)}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="cmp-label">Reviews Count</label>
+                  <input
+                    type="number"
+                    className="cmp-input"
+                    placeholder="e.g., 120"
+                    min="0"
+                    step="1"
+                    value={formData.reviews}
+                    onChange={(e) => handleChange('reviews', e.target.value)}
+                  />
+                  <p className="cmp-helper">Shown on the scan page next to the stars</p>
                 </div>
               </div>
             </div>
