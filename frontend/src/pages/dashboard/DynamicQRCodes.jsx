@@ -225,6 +225,7 @@ const DynamicQRCodes = () => {
                   <table className="dq-table table-responsive">
                     <thead>
                       <tr>
+                        <th className="dq-th">Sr. No.</th>
                         <th className="dq-th">Folder Name</th>
                         <th className="dq-th">QR Codes</th>
                         <th className="dq-th dq-col-action text-end">Action</th>
@@ -234,8 +235,9 @@ const DynamicQRCodes = () => {
                       {currentFolders.length === 0 ? (
                         <tr><td colSpan="3" className="text-center" style={{ color: '#ddd', height: "150px" }}>No folders found. Create one to get started.</td></tr>
                       ) : (
-                        currentFolders.map((cat) => (
+                        currentFolders.map((cat, index) => (
                           <tr key={cat.id} className="dq-tr" onClick={() => setCurrentFolder(cat)} style={{ cursor: 'pointer' }}>
+                            <td>{index + 1}</td>
                             <td>
                               <div className="d-flex align-items-center gap-2">
                                 <div className="dq-qr-thumb" style={{ width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,200,255,0.1)', borderRadius: '10px' }}>

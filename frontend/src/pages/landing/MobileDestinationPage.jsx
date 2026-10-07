@@ -313,7 +313,7 @@ const MobileDestinationPage = () => {
         <p className="ld-desc">{data.desc}</p> */}
 
 
-        {data.ctaLink && data.ctaLink !== '#' && (
+        {data.ctaLink && data.ctaLink.trim() !== '' && data.ctaLink !== '#' && data.ctaLink !== 'null' && (
           <a href={data.ctaLink} onClick={handleCTAClick} className="thm-btn" style={{ padding: "12px 0", marginBottom: "14px" }}>
             <span>{data.cta}</span>  <FaArrowRight className="ld-cta-arrow" />
           </a>

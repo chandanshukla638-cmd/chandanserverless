@@ -27,21 +27,27 @@ const Overview = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [overviewRes, overviewDailyRes, devicesRes, locationsRes, qrRes] = await Promise.all([
+        const [overviewRes, overviewDailyRes, devicesRes, locationsRes, qrRes, staticQrRes] = await Promise.all([
           api.get(`/analytics/overview?days=${days}`),
           api.get(`/analytics/overview/daily?days=${days}`),
           api.get('/analytics/devices'),
           api.get('/analytics/locations'),
           api.get('/qr'),
+          api.get('/static-qr'),
         ]);
 
         const curr = overviewRes.data;
         const qrData = qrRes.data || [];
-        const totalQr = qrData.length;
-        const activeQr = qrData.filter(q => q.status === 'active').length;
+        const staticQrData = staticQrRes.data || [];
+        
+        const dynamicCount = qrData.length;
+        const staticCount = staticQrData.length;
+        const totalQr = dynamicCount + staticCount;
+        
+        const activeDynamicQr = qrData.filter(q => q.status === 'active').length;
+        const activeStaticQr = staticQrData.filter(q => q.status === 'active').length;
+        const activeQr = activeDynamicQr + activeStaticQr;
 
-        const dynamicCount = qrData.filter(q => q.campaign_id).length;
-        const staticCount = totalQr - dynamicCount;
         const dynamicPercent = totalQr > 0 ? Math.round((dynamicCount / totalQr) * 100) : 0;
         const staticPercent = totalQr > 0 ? 100 - dynamicPercent : 0;
 
