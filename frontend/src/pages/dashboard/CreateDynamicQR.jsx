@@ -113,7 +113,7 @@ const CreateDynamicQR = () => {
             name: qrName.trim(),
             video_type: videoSource ? 'library' : (videoUrl.includes('youtube') ? 'youtube' : videoUrl.includes('vimeo') ? 'vimeo' : 'mp4'),
             video_url: finalVideoUrl,
-            cta_text: ctaText.trim() || 'Learn More',
+            cta_text: ctaText.trim() || null,
             cta_destination: ctaUrl.trim() || null,
             headline: qrName.trim(),
           });
@@ -134,7 +134,7 @@ const CreateDynamicQR = () => {
           name: qrName.trim(),
           video_type: videoType,
           video_url: finalVideoUrl,
-          cta_text: ctaText.trim() || 'Learn More',
+          cta_text: ctaText.trim() || null,
           cta_destination: ctaUrl.trim() || null,
           headline: qrName.trim(),
           tagline: '',

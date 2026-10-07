@@ -44,7 +44,7 @@ const DynamicQRCodes = () => {
         unique: parseInt(qr.unique_scans) || 0,
         ctaClicks: parseInt(qr.cta_clicks) || 0,
         ctr: qr.total_scans > 0 ? ((parseInt(qr.cta_clicks) / parseInt(qr.total_scans)) * 100).toFixed(1) : '0.0',
-        ctaDestination: qr.cta_destination || qr.current_video_url || '—',
+        ctaDestination: qr.cta_destination || '—',
         status: qr.status,
         active: qr.status === 'active',
         logoUrl: qr.logo_url || null,

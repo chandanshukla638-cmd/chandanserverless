@@ -151,16 +151,35 @@ export const updateCampaign = async (req, res, next) => {
     }
     // Update active version if video/cta fields provided
     if (video_url !== undefined || cta_text !== undefined || cta_destination !== undefined || video_type !== undefined) {
-      await db.query(
-        `UPDATE campaign_versions SET 
-          video_type = COALESCE($1, video_type), 
-          video_url = COALESCE($2, video_url), 
-          cta_text = COALESCE($3, cta_text), 
-          cta_destination = COALESCE($4, cta_destination),
-          updated_at = NOW()
-        WHERE campaign_id = $5 AND is_active = true`,
-        [video_type, video_url, cta_text, cta_destination, id]
-      );
+      const updates = [];
+      const values = [];
+      let paramIdx = 1;
+
+      if (video_type !== undefined) {
+        updates.push(`video_type = $${paramIdx++}`);
+        values.push(video_type);
+      }
+      if (video_url !== undefined) {
+        updates.push(`video_url = $${paramIdx++}`);
+        values.push(video_url);
+      }
+      if (cta_text !== undefined) {
+        updates.push(`cta_text = $${paramIdx++}`);
+        values.push(cta_text);
+      }
+      if (cta_destination !== undefined) {
+        updates.push(`cta_destination = $${paramIdx++}`);
+        values.push(cta_destination);
+      }
+
+      if (updates.length > 0) {
+        updates.push(`updated_at = NOW()`);
+        values.push(id);
+        await db.query(
+          `UPDATE campaign_versions SET ${updates.join(', ')} WHERE campaign_id = $${paramIdx} AND is_active = true`,
+          values
+        );
+      }
     }
     res.json(result.rows[0]);
   } catch (err) {
