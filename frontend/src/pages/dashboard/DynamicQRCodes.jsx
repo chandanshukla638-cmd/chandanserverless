@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaDownload, FaEye, FaToggleOn, FaToggleOff, FaQrcode, FaChevronDown, FaTrash, FaPen, FaArrowLeft, FaFolderOpen, FaEdit } from 'react-icons/fa';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -16,6 +17,7 @@ const DynamicQRCodes = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [selectedQR, setSelectedQR] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [lifecycleFilter, setLifecycleFilter] = useState('All');
@@ -131,6 +133,11 @@ const DynamicQRCodes = () => {
     if (openDropdown === id) {
       setOpenDropdown(null);
     } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right
+      });
       setOpenDropdown(id);
     }
   };
@@ -141,8 +148,15 @@ const DynamicQRCodes = () => {
         setOpenDropdown(null);
       }
     };
+    const handleScroll = () => {
+      if (openDropdown) setOpenDropdown(null);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [openDropdown]);
 
   const filteredList = qrList.filter(qr => {
@@ -240,7 +254,7 @@ const DynamicQRCodes = () => {
                     <tbody>
                       {loading ? (
                         <tr>
-                          <td colSpan="4" className="text-center" style={{ height: "150px", verticalAlign: "middle" }}>
+                          <td colSpan="4" className="text-center" style={{ height: "250px", verticalAlign: "middle" }}>
                             <div className="spinner-border text-info" role="status">
                               <span className="visually-hidden">Loading...</span>
                             </div>
@@ -270,13 +284,13 @@ const DynamicQRCodes = () => {
                                 >
                                   Edit <FaChevronDown size={10} />
                                 </button>
-                                {openDropdown === `folder_${cat.id}` && (
+                                {openDropdown === `folder_${cat.id}` && createPortal(
                                   <div
                                     className="dq-dropdown-menu"
                                     style={{
                                       position: 'absolute',
-                                      top: 'calc(100% + 5px)',
-                                      right: 0,
+                                      top: dropdownPos.top + 5 + 'px',
+                                      right: dropdownPos.right + 'px',
                                       zIndex: 1050,
                                       minWidth: '120px'
                                     }}
@@ -290,7 +304,8 @@ const DynamicQRCodes = () => {
                                     <button style={{ color: '#ef4444' }} onClick={(e) => { e.stopPropagation(); handleDeleteFolder(cat.id); }}>
                                       <FaTrash size={14} /> Delete
                                     </button>
-                                  </div>
+                                  </div>,
+                                  document.body
                                 )}
                               </div>
                             </td>
@@ -497,18 +512,18 @@ const DynamicQRCodes = () => {
                                     Edit <FaChevronDown size={10} />
                                   </button>
 
-                                  {openDropdown === qr.id && (
+                                  {openDropdown === qr.id && createPortal(
                                     <div
                                       className="dq-dropdown-menu"
                                       style={{
                                         position: 'absolute',
-                                        ...(currentItems.length > 2 && index >= currentItems.length - 2 ? { bottom: 'calc(100% + 5px)' } : { top: 'calc(100% + 5px)' }),
-                                        right: 0,
+                                        top: dropdownPos.top + 5 + 'px',
+                                        right: dropdownPos.right + 'px',
                                         zIndex: 1050,
                                         minWidth: '160px'
                                       }}
                                     >
-                                      <button onClick={() => navigate(`/admin/dynamic-qr/${qr.qrId}`)}>
+                                      <button onClick={() => { setOpenDropdown(null); navigate(`/admin/dynamic-qr/${qr.qrId}`); }}>
                                         <FaEye size={16} /> View Details
                                       </button>
                                       <button onClick={() => {
@@ -517,7 +532,7 @@ const DynamicQRCodes = () => {
                                       }}>
                                         <FaPen size={14} /> Edit QR
                                       </button>
-                                      <button onClick={() => handleDownload(qr)}>
+                                      <button onClick={() => { setOpenDropdown(null); handleDownload(qr); }}>
                                         <FaDownload size={16} /> Download QR
                                       </button>
                                       <button onClick={() => { toggleActive(qr.id); setOpenDropdown(null); }}>
@@ -525,10 +540,11 @@ const DynamicQRCodes = () => {
                                           ? <><FaToggleOff size={12} /> Deactivate</>
                                           : <><FaToggleOn size={16} /> Activate</>}
                                       </button>
-                                      <button style={{ color: '#ef4444' }} onClick={() => handleDelete(qr.id)}>
+                                      <button style={{ color: '#ef4444' }} onClick={() => { setOpenDropdown(null); handleDelete(qr.id); }}>
                                         <FaTrash size={14} /> Delete
                                       </button>
-                                    </div>
+                                    </div>,
+                                    document.body
                                   )}
                                 </div>
                               </td>

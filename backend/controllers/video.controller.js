@@ -167,3 +167,32 @@ export const linkVideoToQRs = async (req, res, next) => {
     next(err);
   }
 };
+
+export const unlinkVideoFromQRs = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { qr_ids } = req.body;
+    
+    if (!qr_ids || qr_ids.length === 0) {
+      return res.status(400).json({ error: 'No QR codes provided' });
+    }
+
+    const videoResult = await db.query('SELECT video_url FROM videos WHERE id = $1', [id]);
+    if (videoResult.rows.length === 0) return res.status(404).json({ error: 'Video not found' });
+    const video = videoResult.rows[0];
+
+    for (const qr_id of qr_ids) {
+      const campResult = await db.query("SELECT id FROM campaigns WHERE qr_id = $1 AND status = 'active' LIMIT 1", [qr_id]);
+      if (campResult.rows.length > 0) {
+        const campaignId = campResult.rows[0].id;
+        await db.query(
+          "UPDATE campaign_versions SET is_active = false WHERE campaign_id = $1 AND video_url = $2 AND is_active = true",
+          [campaignId, video.video_url]
+        );
+      }
+    }
+    res.json({ message: 'QR codes unlinked successfully' });
+  } catch (err) {
+    next(err);
+  }
+};

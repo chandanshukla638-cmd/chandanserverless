@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaTrash, FaDownload } from 'react-icons/fa';
+import { createPortal } from 'react-dom';
+import { FaUser, FaTrash, FaDownload, FaChevronDown } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 import '../../styles/DynamicQR.css';
@@ -8,6 +9,8 @@ const Leads = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -31,6 +34,7 @@ const Leads = () => {
   }, [searchTerm]);
 
   const deleteLead = async (id) => {
+    setOpenDropdown(null);
     if (!window.confirm('Delete this lead?')) return;
     try {
       await api.delete(`/leads/${id}`);
@@ -40,6 +44,37 @@ const Leads = () => {
       toast.error('Failed to delete lead');
     }
   };
+
+  const toggleDropdown = (id, e) => {
+    e.stopPropagation();
+    if (openDropdown === id) {
+      setOpenDropdown(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right
+      });
+      setOpenDropdown(id);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openDropdown && !e.target.closest('.dq-action-cell') && !e.target.closest('.dq-dropdown-menu')) {
+        setOpenDropdown(null);
+      }
+    };
+    const handleScroll = () => {
+      if (openDropdown) setOpenDropdown(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [openDropdown]);
 
   const exportCSV = () => {
     if (filteredLeads.length === 0) return;
@@ -164,14 +199,31 @@ const Leads = () => {
                           {new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </td>
                         <td className="dq-col-action">
-                          <div className="dq-action-cell">
+                          <div className="dq-action-cell" style={{ position: 'relative' }}>
                             <button
                               className="dq-edit-btn"
-                              style={{ color: '#ef4444' }}
-                              onClick={() => deleteLead(lead.id)}
+                              onClick={(e) => toggleDropdown(lead.id, e)}
                             >
-                              <FaTrash size={12} /> Delete
+                              Action <FaChevronDown size={10} />
                             </button>
+                            
+                            {openDropdown === lead.id && createPortal(
+                              <div
+                                className="dq-dropdown-menu"
+                                style={{
+                                  position: 'absolute',
+                                  top: dropdownPos.top + 5 + 'px',
+                                  right: dropdownPos.right + 'px',
+                                  zIndex: 1050,
+                                  minWidth: '120px'
+                                }}
+                              >
+                                <button style={{ color: '#ef4444' }} onClick={() => deleteLead(lead.id)}>
+                                  <FaTrash size={14} /> Delete
+                                </button>
+                              </div>,
+                              document.body
+                            )}
                           </div>
                         </td>
                       </tr>

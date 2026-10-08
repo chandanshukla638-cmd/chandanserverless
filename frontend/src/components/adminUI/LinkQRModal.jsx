@@ -8,6 +8,7 @@ const LinkQRModal = ({ show, video, onClose }) => {
   const [search, setSearch] = useState('');
   const [qrCodes, setQrCodes] = useState([]);
   const [selectedQRs, setSelectedQRs] = useState([]);
+  const [selectedUnlinkQRs, setSelectedUnlinkQRs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,7 @@ const LinkQRModal = ({ show, video, onClose }) => {
       fetchQRs();
     } else {
       setSelectedQRs([]);
+      setSelectedUnlinkQRs([]);
       setSearch('');
       setQrCodes([]);
     }
@@ -63,12 +65,23 @@ const LinkQRModal = ({ show, video, onClose }) => {
   const unlinkedQRs = filteredQRs.filter(qr => !qr.linked);
   const isAllSelected = unlinkedQRs.length > 0 && unlinkedQRs.every(qr => selectedQRs.includes(qr.id));
 
-  const handleToggleQR = (qrId) => {
-    setSelectedQRs(prev =>
-      prev.includes(qrId)
-        ? prev.filter(id => id !== qrId)
-        : [...prev, qrId]
-    );
+  const linkedQRs = filteredQRs.filter(qr => qr.linked);
+  const isAllLinkedSelected = linkedQRs.length > 0 && linkedQRs.every(qr => selectedUnlinkQRs.includes(qr.id));
+
+  const handleToggleQR = (qr) => {
+    if (qr.linked) {
+      setSelectedUnlinkQRs(prev =>
+        prev.includes(qr.id)
+          ? prev.filter(id => id !== qr.id)
+          : [...prev, qr.id]
+      );
+    } else {
+      setSelectedQRs(prev =>
+        prev.includes(qr.id)
+          ? prev.filter(id => id !== qr.id)
+          : [...prev, qr.id]
+      );
+    }
   };
 
   const handleSelectAllToggle = () => {
@@ -81,6 +94,20 @@ const LinkQRModal = ({ show, video, onClose }) => {
     } else {
       setSelectedQRs(prev => {
         const newSelected = new Set([...prev, ...availableIds]);
+        return Array.from(newSelected);
+      });
+    }
+  };
+
+  const handleSelectAllLinkedToggle = () => {
+    const linkedIds = linkedQRs.map(qr => qr.id);
+    const allSelected = linkedIds.length > 0 && linkedIds.every(id => selectedUnlinkQRs.includes(id));
+    
+    if (allSelected) {
+      setSelectedUnlinkQRs(prev => prev.filter(id => !linkedIds.includes(id)));
+    } else {
+      setSelectedUnlinkQRs(prev => {
+        const newSelected = new Set([...prev, ...linkedIds]);
         return Array.from(newSelected);
       });
     }
@@ -108,6 +135,7 @@ const LinkQRModal = ({ show, video, onClose }) => {
         onClose(true); // pass true to refresh
         setSaved(false);
         setSelectedQRs([]);
+        setSelectedUnlinkQRs([]);
         setSearch('');
       }, 1000);
     } catch (err) {
@@ -117,10 +145,42 @@ const LinkQRModal = ({ show, video, onClose }) => {
     }
   };
 
+  const handleUnlink = async (qrId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to unlink this QR code from the video?')) return;
+    try {
+      setLoading(true);
+      await api.post(`/video/${video.id}/unlink`, { qr_ids: [qrId] });
+      toast.success('Successfully unlinked QR code');
+      fetchQRs(); // refresh the list
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to unlink QR code');
+      setLoading(false);
+    }
+  };
+
+  const handleBulkUnlink = async () => {
+    if (!window.confirm(`Are you sure you want to unlink ${selectedUnlinkQRs.length} QR code(s) from the video?`)) return;
+    try {
+      setSaving(true);
+      await api.post(`/video/${video.id}/unlink`, { qr_ids: selectedUnlinkQRs });
+      toast.success(`Successfully unlinked ${selectedUnlinkQRs.length} QR code(s)`);
+      setSelectedUnlinkQRs([]);
+      fetchQRs(); // refresh the list
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to unlink QR codes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleClose = () => {
     onClose();
     setSaved(false);
     setSelectedQRs([]);
+    setSelectedUnlinkQRs([]);
     setSearch('');
   };
 
@@ -166,16 +226,28 @@ const LinkQRModal = ({ show, video, onClose }) => {
 
           <div className="d-flex justify-content-between align-items-center mb-2 px-1">
             <span style={{ fontSize: '14px', color: '#eee' }}>
-              {unlinkedQRs.length} available to link
+              {unlinkedQRs.length} available to link • {linkedQRs.length} linked
             </span>
-            <button 
-              className={isAllSelected ? 'lqm-selected-badge' : 'lqm-select-badge'}
-              style={{ border: 'none', cursor: 'pointer' }}
-              onClick={handleSelectAllToggle}
-              disabled={loading || unlinkedQRs.length === 0}
-            >
-              {isAllSelected ? <><FaCheck /> Unselect All</> : 'Select All'}
-            </button>
+            <div className="d-flex gap-2">
+              <button 
+                className={isAllSelected ? 'lqm-selected-badge' : 'lqm-select-badge'}
+                style={{ border: 'none', cursor: 'pointer' }}
+                onClick={handleSelectAllToggle}
+                disabled={loading || unlinkedQRs.length === 0}
+              >
+                {isAllSelected ? <><FaCheck /> Unselect All</> : 'Select All'}
+              </button>
+              {linkedQRs.length > 0 && (
+                <button 
+                  className={isAllLinkedSelected ? 'lqm-selected-badge' : 'lqm-select-badge'}
+                  style={isAllLinkedSelected ? { border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff' } : { border: 'none', cursor: 'pointer' }}
+                  onClick={handleSelectAllLinkedToggle}
+                  disabled={loading}
+                >
+                  {isAllLinkedSelected ? <><FaCheck /> Unselect All Linked</> : 'Select All Linked'}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* QR List */}
@@ -196,8 +268,8 @@ const LinkQRModal = ({ show, video, onClose }) => {
               filteredQRs.map(qr => (
                 <div
                   key={qr.id}
-                  className={`lqm-qr-item ${qr.linked ? 'linked' : ''} ${selectedQRs.includes(qr.id) ? 'selected' : ''}`}
-                  onClick={() => !qr.linked && handleToggleQR(qr.id)}
+                  className={`lqm-qr-item ${qr.linked ? 'linked' : ''} ${selectedQRs.includes(qr.id) || selectedUnlinkQRs.includes(qr.id) ? 'selected' : ''}`}
+                  onClick={() => handleToggleQR(qr)}
                 >
                   <div className="lqm-qr-icon">
                     <FaQrcode />
@@ -210,9 +282,23 @@ const LinkQRModal = ({ show, video, onClose }) => {
                   </div>
                   <div className="lqm-qr-action">
                     {qr.linked ? (
-                      <span className="lqm-linked-badge">
-                        <FaLink /> Linked
-                      </span>
+                      selectedUnlinkQRs.includes(qr.id) ? (
+                        <span className="lqm-selected-badge" style={{ background: '#ef4444', color: '#fff' }}>
+                          <FaCheck /> Selected to Unlink
+                        </span>
+                      ) : (
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="lqm-linked-badge">
+                            <FaLink /> Linked
+                          </span>
+                          <button 
+                            onClick={(e) => handleUnlink(qr.id, e)}
+                            style={{ background: 'transparent', border: '1px solid #ef4444', borderRadius: '4px', color: '#ef4444', fontSize: '12px', padding: '2px 8px', cursor: 'pointer' }}
+                          >
+                            Unlink
+                          </button>
+                        </div>
+                      )
                     ) : selectedQRs.includes(qr.id) ? (
                       <span className="lqm-selected-badge">
                         <FaCheck /> Selected
@@ -228,35 +314,55 @@ const LinkQRModal = ({ show, video, onClose }) => {
 
           {/* Selected Count */}
           {selectedQRs.length > 0 && (
-            <div className="lqm-selected-info">
+            <div className="lqm-selected-info mb-2">
               <FaLink className="lqm-selected-icon" />
               <span>{selectedQRs.length} QR code(s) selected to link</span>
+            </div>
+          )}
+          {selectedUnlinkQRs.length > 0 && (
+            <div className="lqm-selected-info mb-2" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+              <FaTimes className="lqm-selected-icon" style={{ color: '#ef4444' }} />
+              <span>{selectedUnlinkQRs.length} QR code(s) selected to unlink</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="qrd-modal-footer">
-          <button className="thm-btn outline" onClick={handleClose}>
-            Cancel
-          </button>
-          <button
-            className="thm-btn"
-            onClick={handleSave}
-            disabled={saving || saved || selectedQRs.length === 0}
-          >
-            {saving ? (
-              <>Linking...</>
-            ) : saved ? (
-              <>
-                <FaCheck className="me-2" /> Linked!
-              </>
-            ) : (
-              <>
-                <FaLink className="me-2" /> Link {selectedQRs.length} QR Code(s)
-              </>
+        <div className="qrd-modal-footer d-flex justify-content-between">
+          <div>
+            {selectedUnlinkQRs.length > 0 && (
+              <button
+                className="thm-btn"
+                style={{ background: '#ef4444' }}
+                onClick={handleBulkUnlink}
+                disabled={saving || saved}
+              >
+                {saving ? 'Processing...' : `Unlink ${selectedUnlinkQRs.length} QR(s)`}
+              </button>
             )}
-          </button>
+          </div>
+          <div className="d-flex gap-2">
+            <button className="thm-btn outline" onClick={handleClose}>
+              Cancel
+            </button>
+            <button
+              className="thm-btn"
+              onClick={handleSave}
+              disabled={saving || saved || selectedQRs.length === 0}
+            >
+              {saving ? (
+                <>Linking...</>
+              ) : saved ? (
+                <>
+                  <FaCheck className="me-2" /> Linked!
+                </>
+              ) : (
+                <>
+                  <FaLink className="me-2" /> Link {selectedQRs.length} QR Code(s)
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

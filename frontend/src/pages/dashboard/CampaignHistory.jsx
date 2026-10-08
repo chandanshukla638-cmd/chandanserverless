@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaHistory, FaEye, FaUndo, FaCalendarAlt, FaSearch, FaPlus, FaChevronDown, FaPlay, FaLink, FaChartLine, FaCheck, FaPause, FaArrowUp } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -11,6 +12,7 @@ const CampaignHistory = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, active: 0, completed: 0, paused: 0, change: { total: 0, active: 0, completed: 0, paused: 0 } });
@@ -56,8 +58,18 @@ const CampaignHistory = () => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus]);
 
-  const toggleDropdown = (id) => {
-    setOpenDropdown(prev => prev === id ? null : id);
+  const toggleDropdown = (id, e) => {
+    e.stopPropagation();
+    if (openDropdown === id) {
+      setOpenDropdown(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right
+      });
+      setOpenDropdown(id);
+    }
   };
 
   useEffect(() => {
@@ -66,8 +78,15 @@ const CampaignHistory = () => {
         setOpenDropdown(null);
       }
     };
+    const handleScroll = () => {
+      if (openDropdown) setOpenDropdown(null);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [openDropdown]);
 
   const today = new Date();
@@ -224,7 +243,16 @@ const CampaignHistory = () => {
               </tr>
             </thead>
             <tbody>
-              {currentItems.map((campaign, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="11" className="text-center" style={{ height: "250px", verticalAlign: "middle" }}>
+                    <div className="spinner-border text-info" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <p style={{ color: '#ddd', marginTop: '10px' }}>Loading campaigns...</p>
+                  </td>
+                </tr>
+              ) : currentItems.map((campaign, index) => (
                 <tr key={campaign.id} className="ch-tr">
                   <td className="ch-td">{indexOfFirstItem + index + 1}</td>
                   <td className="ch-td">
@@ -272,17 +300,17 @@ const CampaignHistory = () => {
                     <div className="ch-action-cell" style={{ position: 'relative' }}>
                       <button 
                         className="ch-edit-btn"
-                        onClick={() => toggleDropdown(campaign.id)}
+                        onClick={(e) => toggleDropdown(campaign.id, e)}
                       >
                         Edit <FaChevronDown size={10} />
                       </button>
-                      {openDropdown === campaign.id && (
+                      {openDropdown === campaign.id && createPortal(
                         <div
                           className="ch-dropdown-menu"
                           style={{
                             position: 'absolute',
-                            top: 'calc(100% + 5px)',
-                            right: 0,
+                            top: dropdownPos.top + 5 + 'px',
+                            right: dropdownPos.right + 'px',
                             zIndex: 1050,
                             minWidth: '170px'
                           }}
@@ -309,7 +337,8 @@ const CampaignHistory = () => {
                           }}>
                             <BsTrash size={16} /> Delete 
                           </button>
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   </td>
@@ -357,10 +386,10 @@ const CampaignHistory = () => {
           </div>
         )}
 
-        {filteredCampaigns.length === 0 && (
+        {!loading && filteredCampaigns.length === 0 && (
           <div className="ch-empty">
             <FaHistory className="ch-empty-icon" />
-            <p className="ch-empty-text">No campaigns found matching your filters</p>
+            <p className="ch-empty-text" style={{color : "#ddd"}}>No campaigns found matching your filters</p>
           </div>
         )}
       </div>

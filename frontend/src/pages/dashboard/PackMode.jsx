@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaBox, FaQrcode, FaPlus, FaTrash, FaLock, FaChevronDown, FaEye, FaTimes } from 'react-icons/fa';
 import api from '../../services/api';
@@ -20,6 +21,7 @@ const PackMode = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [currentPage, setCurrentPage] = useState(1);
   const scanInputRef = useRef(null);
   const itemsPerPage = 10;
@@ -52,8 +54,15 @@ const PackMode = () => {
         setOpenDropdown(null);
       }
     };
+    const handleScroll = () => {
+      if (openDropdown) setOpenDropdown(null);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [openDropdown]);
 
   const handleCreateBox = async (e) => {
@@ -137,7 +146,16 @@ const PackMode = () => {
 
   const toggleDropdown = (id, e) => {
     e.stopPropagation();
-    setOpenDropdown(openDropdown === id ? null : id);
+    if (openDropdown === id) {
+      setOpenDropdown(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY,
+        right: window.innerWidth - rect.right
+      });
+      setOpenDropdown(id);
+    }
   };
 
   const filteredList = boxes.filter(box => {
@@ -280,29 +298,30 @@ const PackMode = () => {
                               Edit <FaChevronDown size={10} />
                             </button>
 
-                            {openDropdown === box.id && (
+                            {openDropdown === box.id && createPortal(
                               <div
                                 className="dq-dropdown-menu"
                                 style={{
                                   position: 'absolute',
-                                  ...(currentItems.length > 2 && index >= currentItems.length - 2 ? { bottom: 'calc(100% + 5px)' } : { top: 'calc(100% + 5px)' }),
-                                  right: 0,
+                                  top: dropdownPos.top + 5 + 'px',
+                                  right: dropdownPos.right + 'px',
                                   zIndex: 1050,
                                   minWidth: '160px'
                                 }}
                               >
-                                <button onClick={() => handleSelectBox(box)}>
+                                <button onClick={() => { setOpenDropdown(null); handleSelectBox(box); }}>
                                   <FaEye size={16} /> View QRs
                                 </button>
                                 {box.status === 'open' && (
-                                  <button onClick={() => handleSealBox(box.id)}>
+                                  <button onClick={() => { setOpenDropdown(null); handleSealBox(box.id); }}>
                                     <FaLock size={14} /> Seal Box
                                   </button>
                                 )}
-                                <button style={{ color: '#ef4444' }} onClick={() => handleDeleteBox(box.id)}>
+                                <button style={{ color: '#ef4444' }} onClick={() => { setOpenDropdown(null); handleDeleteBox(box.id); }}>
                                   <FaTrash size={14} /> Delete
                                 </button>
-                              </div>
+                              </div>,
+                              document.body
                             )}
                           </div>
                         </td>
