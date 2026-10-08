@@ -262,7 +262,7 @@ const DynamicQRCodes = () => {
                           </td>
                         </tr>
                       ) : currentFolders.length === 0 ? (
-                        <tr><td colSpan="4" className="text-center" style={{ color: '#ddd', height: "150px" }}>No folders found. Create one to get started.</td></tr>
+                        <tr><td colSpan="4" className="text-center" style={{ color: '#ddd', height: "250px" }}>No folders found. Create one to get started.</td></tr>
                       ) : (
                         currentFolders.map((cat, index) => (
                           <tr key={cat.id} className="dq-tr" onClick={() => setCurrentFolder(cat)} style={{ cursor: 'pointer' }}>
