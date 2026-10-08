@@ -96,7 +96,7 @@ const Footer = ({ footerData = {} }) => {
               <p className="mk-footer-copy">&copy; {footerData.copyright || '2026 AKKSYS. All rights reserved.'}</p>
             </div>
             <div className="col-md-6 text-md-end">
-              <a href={`mailto:${footerData.email || 'hello@akksys.in'}`} className="mk-footer-contact"><FaEnvelope className="me-1" /> {footerData.email || 'hello@akksys.in'}</a>
+              <a href={`mailto:${footerData.email || 'hello@akksys.com'}`} className="mk-footer-contact"><FaEnvelope className="me-1" /> {footerData.email || 'hello@akksys.com'}</a>
               <a href={`tel:${footerData.phone || '+919876543210'}`} className="mk-footer-contact ms-3"><FaPhone className="me-1" /> {footerData.phone || '+91 98765 43210'}</a>
             </div>
           </div>

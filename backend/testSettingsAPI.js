@@ -8,7 +8,7 @@ async function testSettingsFlow() {
     const loginRes = await fetch(`${BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@akksys.in', password: 'Admin@123' })
+      body: JSON.stringify({ email: 'admin@akksys.com', password: 'Admin@123' })
     });
     const loginData = await loginRes.json();
     
@@ -39,7 +39,7 @@ async function testSettingsFlow() {
       headers,
       body: JSON.stringify({
         name: 'Admin User',
-        email: 'admin@akksys.in',
+        email: 'admin@akksys.com',
         phone: '+91 98765 43210',
         company: 'AKKSYS Updated'
       })
@@ -66,7 +66,7 @@ async function testSettingsFlow() {
     await fetch(`${BASE}/user/profile`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ name: 'Admin User', email: 'admin@akksys.in', phone: '+91 98765 43210', company: 'AKKSYS' })
+      body: JSON.stringify({ name: 'Admin User', email: 'admin@akksys.com', phone: '+91 98765 43210', company: 'AKKSYS' })
     });
     console.log('\n✅ All tests passed! Reverted company name.');
 

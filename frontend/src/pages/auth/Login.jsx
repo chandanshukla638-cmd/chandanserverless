@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { FaQrcode, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../dashboard/Loader';
@@ -35,7 +36,9 @@ const Login = () => {
       await login(email, password);
       setResendTimer(30);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to resend OTP.');
+      const errMsg = err.response?.data?.error || 'Failed to resend OTP.';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -50,6 +53,7 @@ const Login = () => {
     if (step === 1) {
       if (!email || !password) {
         setError('Please fill in all fields');
+        toast.error('Please fill in all fields');
         return;
       }
       setLoading(true);
@@ -62,13 +66,16 @@ const Login = () => {
           navigate('/admin');
         }
       } catch (err) {
-        setError(err.response?.data?.error || 'Login failed. Please try again.');
+        const errMsg = err.response?.data?.error || 'Login failed. Please try again.';
+        setError(errMsg);
+        toast.error(errMsg);
       } finally {
         setLoading(false);
       }
     } else if (step === 2) {
       if (!otp) {
         setError('Please enter the OTP');
+        toast.error('Please enter the OTP');
         return;
       }
       setLoading(true);
@@ -76,7 +83,9 @@ const Login = () => {
         await verifyOTP(email, otp);
         navigate('/admin');
       } catch (err) {
-        setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+        const errMsg = err.response?.data?.error || 'Invalid OTP. Please try again.';
+        setError(errMsg);
+        toast.error(errMsg);
       } finally {
         setLoading(false);
       }
@@ -120,7 +129,7 @@ const Login = () => {
                         <input
                           type="email"
                           className="login-input"
-                          placeholder="admin@akksys.in"
+                          placeholder="admin@akksys.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required

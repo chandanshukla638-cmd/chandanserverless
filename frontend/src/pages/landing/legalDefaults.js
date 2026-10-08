@@ -54,7 +54,7 @@ export const defaultPrivacyPolicy = {
     {
       id: "contact",
       title: "11. Contact Us",
-      content: "<p>If you have any questions about this Privacy Policy, please contact us:</p><ul class=\"mk-legal-list\"><li><strong>Email:</strong> privacy@akksys.in</li><li><strong>Phone:</strong> +91 98765 43210</li><li><strong>Website:</strong> https://akksys.in</li></ul>"
+      content: "<p>If you have any questions about this Privacy Policy, please contact us:</p><ul class=\"mk-legal-list\"><li><strong>Email:</strong> privacy@akksys.com</li><li><strong>Phone:</strong> +91 98765 43210</li><li><strong>Website:</strong> https://akksys.com</li></ul>"
     }
   ]
 };
@@ -130,7 +130,7 @@ export const defaultTermsAndConditions = {
     {
       id: "contact",
       title: "14. Contact Us",
-      content: "<p>If you have any questions about these Terms and Conditions, please contact us:</p><ul class=\"mk-legal-list\"><li><strong>Email:</strong> legal@akksys.in</li><li><strong>Phone:</strong> +91 98765 43210</li><li><strong>Address:</strong> AKKSYS Legal Department, Mumbai, India</li></ul>"
+      content: "<p>If you have any questions about these Terms and Conditions, please contact us:</p><ul class=\"mk-legal-list\"><li><strong>Email:</strong> legal@akksys.com</li><li><strong>Phone:</strong> +91 98765 43210</li><li><strong>Address:</strong> AKKSYS Legal Department, Mumbai, India</li></ul>"
     }
   ]
 };

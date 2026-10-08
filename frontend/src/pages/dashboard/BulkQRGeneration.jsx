@@ -393,7 +393,7 @@ Pro X1 Launch - Mumbai,https://amazon.in/dp/example1,Marketing / Q3 / Pro X1
 Pro X1 Launch - Delhi,https://amazon.in/dp/example2,Marketing / Q3 / Pro X1
 Summer Sale Campaign,https://flipkart.com/sale/example,Sales / Seasonal
 App Download - Play Store,https://play.google.com/store/apps/details?id=example,App
-Warranty Registration,https://akksys.in/warranty/register,Support`;
+Warranty Registration,https://akksys.com/warranty/register,Support`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

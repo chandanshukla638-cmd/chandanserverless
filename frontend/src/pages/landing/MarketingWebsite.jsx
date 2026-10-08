@@ -174,7 +174,7 @@ const DashboardPreview = () => {
             </div>
             <div className="mk-dash-url-bar">
               <FaQrcode size={10} />
-              <span>app.akksys.in/admin</span>
+              <span>app.akksys.com/admin</span>
             </div>
             <div className="mk-dash-browser-right"></div>
           </div> */}
@@ -232,7 +232,7 @@ const DashboardPreview = () => {
                 <div className="mk-dash-sidebar-avatar">AD</div>
                 <div className="mk-dash-sidebar-profile-info">
                   <span className="mk-dash-sidebar-profile-name">Admin</span>
-                  <span className="mk-dash-sidebar-profile-email">admin@akksys.in</span>
+                  <span className="mk-dash-sidebar-profile-email">admin@akksys.com</span>
                 </div>
               </div>
             </div>

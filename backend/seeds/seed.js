@@ -3,7 +3,7 @@ import { hashPassword } from '../utils/hashPassword.js';
 
 export const seed = async (shouldExit = false) => {
   try {
-    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', ['admin@akksys.in']);
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', ['admin@akksys.com']);
     if (existingUser.rows.length > 0) {
       console.log('Admin user already exists');
       if (shouldExit) process.exit(0);
@@ -13,7 +13,7 @@ export const seed = async (shouldExit = false) => {
     const passwordHash = await hashPassword('admin123');
     await db.query(
       'INSERT INTO users (name, email, password_hash, phone, company, role) VALUES ($1, $2, $3, $4, $5, $6)',
-      ['Admin User', 'admin@akksys.in', passwordHash, '+91 98765 43210', 'AKKSYS', 'superadmin']
+      ['Admin User', 'admin@akksys.com', passwordHash, '+91 98765 43210', 'AKKSYS', 'superadmin']
     );
 
     // Insert default settings
@@ -22,7 +22,7 @@ export const seed = async (shouldExit = false) => {
        ON CONFLICT (id) DO NOTHING`
     );
 
-    console.log('Admin user created: admin@akksys.in / admin123');
+    console.log('Admin user created: admin@akksys.com / admin123');
     if (shouldExit) process.exit(0);
   } catch (err) {
     console.error('Seed failed:', err.message);

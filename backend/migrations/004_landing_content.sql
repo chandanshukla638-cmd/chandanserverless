@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS landing_content (
       {"heading": "Legal", "links": [{"label": "Privacy Policy", "url": "/privacy"}, {"label": "Terms of Service", "url": "/terms"}, {"label": "Cookie Policy", "url": "/cookies"}, {"label": "GDPR", "url": "/gdpr"}]}
     ],
     "copyright": "2026 AKKSYS. All rights reserved.",
-    "email": "hello@akksys.in",
+    "email": "hello@akksys.com",
     "phone": "+91 98765 43210"
   }',
   updated_at TIMESTAMP DEFAULT NOW()
