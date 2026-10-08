@@ -332,8 +332,8 @@ const LinkQRModal = ({ show, video, onClose }) => {
           <div>
             {selectedUnlinkQRs.length > 0 && (
               <button
-                className="thm-btn"
-                style={{ background: '#ef4444' }}
+                className="thm-lg-btn ov-btn-danger"
+              
                 onClick={handleBulkUnlink}
                 disabled={saving || saved}
               >
