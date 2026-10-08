@@ -60,12 +60,30 @@ const LinkQRModal = ({ show, video, onClose }) => {
     qr.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const unlinkedQRs = filteredQRs.filter(qr => !qr.linked);
+  const isAllSelected = unlinkedQRs.length > 0 && unlinkedQRs.every(qr => selectedQRs.includes(qr.id));
+
   const handleToggleQR = (qrId) => {
     setSelectedQRs(prev =>
       prev.includes(qrId)
         ? prev.filter(id => id !== qrId)
         : [...prev, qrId]
     );
+  };
+
+  const handleSelectAllToggle = () => {
+    const availableQRs = filteredQRs.filter(qr => !qr.linked);
+    const availableIds = availableQRs.map(qr => qr.id);
+    const allSelected = availableIds.length > 0 && availableIds.every(id => selectedQRs.includes(id));
+    
+    if (allSelected) {
+      setSelectedQRs(prev => prev.filter(id => !availableIds.includes(id)));
+    } else {
+      setSelectedQRs(prev => {
+        const newSelected = new Set([...prev, ...availableIds]);
+        return Array.from(newSelected);
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -146,12 +164,33 @@ const LinkQRModal = ({ show, video, onClose }) => {
             </div>
           </div>
 
+          <div className="d-flex justify-content-between align-items-center mb-2 px-1">
+            <span style={{ fontSize: '14px', color: '#eee' }}>
+              {unlinkedQRs.length} available to link
+            </span>
+            <button 
+              className={isAllSelected ? 'lqm-selected-badge' : 'lqm-select-badge'}
+              style={{ border: 'none', cursor: 'pointer' }}
+              onClick={handleSelectAllToggle}
+              disabled={loading || unlinkedQRs.length === 0}
+            >
+              {isAllSelected ? <><FaCheck /> Unselect All</> : 'Select All'}
+            </button>
+          </div>
+
           {/* QR List */}
           <div className="lqm-qr-list">
-            {filteredQRs.length === 0 ? (
-              <div className="lqm-empty">
-                <FaQrcode />
-                <p>No QR codes found</p>
+            {loading ? (
+              <div className="lqm-empty" style={{ padding: '40px 0' }}>
+                <div className="spinner-border text-info mb-2" role="status">
+                  <span className="visually-hidden" >Loading...</span>
+                </div>
+                <p style={{color : "#ddd"}}>Loading QR codes...</p>
+              </div>
+            ) : filteredQRs.length === 0 ? (
+              <div className="lqm-empty" >
+                <FaQrcode style={{color : "#00b8e8"}} />
+                <p style={{color : "#ddd"}}>No QR codes found</p>
               </div>
             ) : (
               filteredQRs.map(qr => (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaDownload, FaEye, FaToggleOn, FaToggleOff, FaQrcode, FaChevronDown, FaTrash, FaPen, FaArrowLeft, FaFolderOpen, FaEdit } from 'react-icons/fa';
 import { QRCodeCanvas } from 'qrcode.react';
 import QRDownloadModal from '../../components/adminUI/QRDownloadModal';
@@ -12,6 +12,7 @@ import '../../styles/DynamicQR.css';
 
 const DynamicQRCodes = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [selectedQR, setSelectedQR] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -70,11 +71,18 @@ const DynamicQRCodes = () => {
     const fetchCategories = async () => {
       try {
         const res = await api.get('/categories');
-        setCategories(res.data.flat || []);
+        const fetchedCategories = res.data.flat || [];
+        setCategories(fetchedCategories);
+        if (location.state?.folderId) {
+          const targetFolder = fetchedCategories.find(c => String(c.id) === String(location.state.folderId));
+          if (targetFolder) {
+            setCurrentFolder(targetFolder);
+          }
+        }
       } catch { /* empty */ }
     };
     fetchCategories();
-  }, [fetchQRs]);
+  }, [fetchQRs, location.state?.folderId]);
 
   const toggleActive = async (id) => {
     try {
@@ -170,8 +178,6 @@ const DynamicQRCodes = () => {
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  if (loading) return <Loader />;
-
   return (
     <>
       <div className="dq-page-wrapper">
@@ -232,12 +238,21 @@ const DynamicQRCodes = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentFolders.length === 0 ? (
+                      {loading ? (
+                        <tr>
+                          <td colSpan="4" className="text-center" style={{ height: "150px", verticalAlign: "middle" }}>
+                            <div className="spinner-border text-info" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                            <p style={{ color: '#ddd', marginTop: '10px' }}>Loading folders...</p>
+                          </td>
+                        </tr>
+                      ) : currentFolders.length === 0 ? (
                         <tr><td colSpan="4" className="text-center" style={{ color: '#ddd', height: "150px" }}>No folders found. Create one to get started.</td></tr>
                       ) : (
                         currentFolders.map((cat, index) => (
                           <tr key={cat.id} className="dq-tr" onClick={() => setCurrentFolder(cat)} style={{ cursor: 'pointer' }}>
-                            <td>{index + 1}</td>
+                            <td>{indexOfFirstFolder + index + 1}</td>
                             <td>
                               <div className="d-flex align-items-center gap-2">
                                 <div className="dq-qr-thumb" style={{ width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,200,255,0.1)', borderRadius: '10px' }}>
@@ -404,7 +419,16 @@ const DynamicQRCodes = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentItems.length === 0 ? (
+                        {loading ? (
+                          <tr>
+                            <td colSpan="13" className="text-center" style={{ height: "250px", verticalAlign: "middle" }}>
+                              <div className="spinner-border text-info" role="status">
+                                <span className="visually-hidden">Loading...</span>
+                              </div>
+                              <p style={{ color: '#ddd', marginTop: '10px' }}>Loading QR codes...</p>
+                            </td>
+                          </tr>
+                        ) : currentItems.length === 0 ? (
                           <tr>
                             <td colSpan="13" className="text-center" style={{ color: '#ddd', height: "250px" }}>
                               No QR codes found

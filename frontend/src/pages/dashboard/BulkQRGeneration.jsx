@@ -89,7 +89,11 @@ const BulkQRGeneration = () => {
     if (bulkData.length === 0) return;
     setGenerating(true);
     try {
-      const items = bulkData.map(d => ({ name: d.name, destination_url: d.destination_url, category_path: d.category_path }));
+      const items = bulkData.map(d => ({ 
+        name: d.name, 
+        destination_url: d.destination_url, 
+        category_path: categoryId ? '' : d.category_path 
+      }));
       const logoUrl = brandLogo === 'AKKSYS Logo'
         ? 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="12" fill="#00C8FF"/><text x="50" y="62" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">AK</text></svg>')
         : brandLogo === 'Custom Logo' ? customLogo : null;
@@ -422,7 +426,7 @@ Warranty Registration,https://akksys.in/warranty/register,Support`;
     <div className="dq-page-wrapper">
       <div className="dq-header">
         <div className='cd-header-left'>
-          <button className="cmp-back-btn" onClick={() => navigate('/admin/dynamic-qr')}>
+          <button className="cmp-back-btn" onClick={() => navigate('/admin/dynamic-qr', { state: { folderId: categoryId } })}>
             <FaArrowLeft />
           </button>
           <div>
@@ -431,7 +435,7 @@ Warranty Registration,https://akksys.in/warranty/register,Support`;
           </div>
         </div>
         <div className="dq-header-actions">
-          <button className="thm-btn outline" onClick={() => navigate('/admin/dynamic-qr')}>Cancel</button>
+          <button className="thm-btn outline" onClick={() => navigate('/admin/dynamic-qr', { state: { folderId: categoryId } })}>Cancel</button>
           {generated && (
             <>
               <button className="thm-btn" onClick={handlePrintA4} disabled={printingA4}>

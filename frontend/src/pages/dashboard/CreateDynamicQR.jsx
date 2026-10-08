@@ -142,7 +142,7 @@ const CreateDynamicQR = () => {
         });
         toast.success('QR code created successfully!');
       }
-      navigate('/admin/dynamic-qr');
+      navigate('/admin/dynamic-qr', { state: { folderId: categoryId } });
     } catch (err) {
       console.error('Failed to save QR', err);
       toast.error(err.response?.data?.error || 'Failed to save QR code');
@@ -159,7 +159,7 @@ const CreateDynamicQR = () => {
         <div className='cd-header-left'>
           <button
             className="cmp-back-btn"
-            onClick={() => navigate('/admin/dynamic-qr')}
+            onClick={() => navigate('/admin/dynamic-qr', { state: { folderId: categoryId } })}
           >
             <FaArrowLeft  />
           </button>
@@ -171,7 +171,7 @@ const CreateDynamicQR = () => {
         <div className="dq-header-actions">
           <button
             className="thm-btn outline"
-            onClick={() => navigate('/admin/dynamic-qr')}
+            onClick={() => navigate('/admin/dynamic-qr', { state: { folderId: categoryId } })}
           >
             Cancel
           </button>
