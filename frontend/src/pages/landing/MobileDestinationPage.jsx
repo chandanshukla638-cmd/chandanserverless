@@ -34,11 +34,15 @@ const ErrorScreen = ({ message, onRetry }) => (
 
 const VideoPlayer = ({ videoUrl }) => {
   const [loaded, setLoaded] = useState(false);
+  const videoRef = React.useRef(null);
 
   const getEmbed = (url) => {
     if (!url) return null;
     if (url.startsWith('/uploads/')) return `${BACKEND_URL}${url}`;
-    if (url.includes('/embed/')) return url;
+    if (url.includes('/embed/')) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}autoplay=1&mute=1&playsinline=1&enablejsapi=1`;
+    }
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       let id = null;
       if (url.includes('youtu.be')) {
@@ -48,13 +52,30 @@ const VideoPlayer = ({ videoUrl }) => {
       } else {
         id = url.split('v=')[1]?.split('&')[0];
       }
-      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0` : null;
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&rel=0` : null;
     }
-    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&playsinline=1`;
+    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&muted=1&playsinline=1`;
     return url;
   };
 
   const src = getEmbed(videoUrl);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      // Browsers require muted to initiate autoplay reliably
+      const videoEl = videoRef.current;
+      videoEl.muted = true;
+      videoEl.setAttribute('muted', '');
+      videoEl.setAttribute('playsinline', '');
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Autoplay prevented by browser:', err);
+        });
+      }
+    }
+  }, [src]);
+
   if (!src) return <div className="ld-video-empty"><FaPlay /><span>Video not available</span></div>;
 
   const isMp4 = src.includes('/uploads/') || src.endsWith('.mp4');
@@ -64,15 +85,24 @@ const VideoPlayer = ({ videoUrl }) => {
       <div className="ld-video-inner">
         {isMp4 ? (
           <video
+            ref={videoRef}
             src={src}
             controls
             autoPlay
+            muted
             playsInline
+            preload="auto"
             onLoadedData={() => setLoaded(true)}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
-          <iframe src={src} title="Video" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => setLoaded(true)} />
+          <iframe
+            src={src}
+            title="Video"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            onLoad={() => setLoaded(true)}
+          />
         )}
         {!loaded && <div className="ld-video-loader"><div className="ld-spinner-sm"></div></div>}
       </div>
