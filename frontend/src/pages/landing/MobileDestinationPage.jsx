@@ -41,7 +41,7 @@ const VideoPlayer = ({ videoUrl }) => {
     if (url.startsWith('/uploads/')) return `${BACKEND_URL}${url}`;
     if (url.includes('/embed/')) {
       const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}autoplay=1&mute=1&playsinline=1&enablejsapi=1`;
+      return `${url}${separator}autoplay=1&playsinline=1&enablejsapi=1`;
     }
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       let id = null;
@@ -52,9 +52,9 @@ const VideoPlayer = ({ videoUrl }) => {
       } else {
         id = url.split('v=')[1]?.split('&')[0];
       }
-      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&rel=0` : null;
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&enablejsapi=1&rel=0` : null;
     }
-    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&muted=1&playsinline=1`;
+    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&playsinline=1`;
     return url;
   };
 
@@ -62,10 +62,7 @@ const VideoPlayer = ({ videoUrl }) => {
 
   useEffect(() => {
     if (videoRef.current) {
-      // Browsers require muted to initiate autoplay reliably
       const videoEl = videoRef.current;
-      videoEl.muted = true;
-      videoEl.setAttribute('muted', '');
       videoEl.setAttribute('playsinline', '');
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
@@ -89,7 +86,6 @@ const VideoPlayer = ({ videoUrl }) => {
             src={src}
             controls
             autoPlay
-            muted
             playsInline
             preload="auto"
             onLoadedData={() => setLoaded(true)}
