@@ -18,6 +18,8 @@ const VideoLibrary = () => {
   const [hoveredVideo, setHoveredVideo] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const videoRefs = useRef({});
 
   const fetchVideos = async () => {
@@ -63,6 +65,11 @@ const VideoLibrary = () => {
     const mb = parseFloat(curr.size);
     return isNaN(mb) ? acc : acc + mb;
   }, 0);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentVideos = videos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(videos.length / itemsPerPage);
 
   const MAX_STORAGE_MB = 10240;
   const storagePercent = Math.min((totalSize / MAX_STORAGE_MB) * 100, 100).toFixed(1);
@@ -166,7 +173,7 @@ const VideoLibrary = () => {
 
         {/* Video Grid */}
         <div className="row">
-          {videos.map(video => (
+          {currentVideos.map(video => (
             <div className="col-sm-12 col-md-6 col-lg-3 mb-4" key={video.id}>
               <div className="vl-video-card">
                 {/* Thumbnail */}
@@ -275,6 +282,45 @@ const VideoLibrary = () => {
             </div>
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-end pagination-main-box">
+            <ul className="pagination custom-pagination mb-0">
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button className="page-link" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Previous</button>
+              </li>
+              {(() => {
+                const pages = [];
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (currentPage > 3) pages.push('...');
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + 1);
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (currentPage < totalPages - 2) pages.push('...');
+                  pages.push(totalPages);
+                }
+                return pages.map((page, idx) =>
+                  page === '...' ? (
+                    <li key={`ellipsis-${idx}`} className="page-item disabled">
+                      <span className="page-link pagination-ellipsis">...</span>
+                    </li>
+                  ) : (
+                    <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                      <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
+                    </li>
+                  )
+                );
+              })()}
+              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                <button className="page-link" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Next</button>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Video Preview Modal */}
