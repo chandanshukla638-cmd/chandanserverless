@@ -64,6 +64,8 @@ const VideoPlayer = ({ videoUrl }) => {
   useEffect(() => {
     if (videoRef.current) {
       const videoEl = videoRef.current;
+      videoEl.muted = true;
+      videoEl.setAttribute('muted', '');
       videoEl.setAttribute('playsinline', '');
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
@@ -87,6 +89,7 @@ const VideoPlayer = ({ videoUrl }) => {
             src={src}
             controls
             autoPlay
+            muted
             playsInline
             preload="auto"
             onLoadedData={() => setLoaded(true)}
