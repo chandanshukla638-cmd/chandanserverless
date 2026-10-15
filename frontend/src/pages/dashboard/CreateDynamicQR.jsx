@@ -117,6 +117,20 @@ const CreateDynamicQR = () => {
             cta_destination: ctaUrl.trim() || null,
             headline: qrName.trim(),
           });
+        } else {
+          // If existing QR didn't have a campaign attached yet, create one
+          const videoType = videoSource ? 'library' : (videoUrl.includes('youtube') ? 'youtube' : videoUrl.includes('vimeo') ? 'vimeo' : 'mp4');
+          await api.post('/campaign/create', {
+            qr_id: editQR.id,
+            name: qrName.trim(),
+            video_type: videoType,
+            video_url: finalVideoUrl,
+            cta_text: ctaText.trim() || null,
+            cta_destination: ctaUrl.trim() || null,
+            headline: qrName.trim(),
+            tagline: '',
+            badge: '',
+          });
         }
         toast.success('QR code updated successfully!');
       } else {
@@ -151,7 +165,7 @@ const CreateDynamicQR = () => {
     }
   };
 
-  const selectedVideo = videos.find(v => String(v.id) === videoSource);
+  const selectedVideo = videos.find(v => v.video_url === videoSource || String(v.id) === videoSource);
 
   return (
     <div className="dq-page-wrapper">

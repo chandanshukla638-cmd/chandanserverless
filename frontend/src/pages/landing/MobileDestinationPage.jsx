@@ -37,25 +37,26 @@ const VideoPlayer = ({ videoUrl }) => {
   const videoRef = React.useRef(null);
 
   const getEmbed = (url) => {
-    if (!url) return null;
-    if (url.startsWith('/uploads/')) return `${BACKEND_URL}${url}`;
-    if (url.includes('/embed/')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}autoplay=1&playsinline=1&enablejsapi=1`;
+    if (!url || typeof url !== 'string' || !url.trim()) return null;
+    const cleanUrl = url.trim();
+    if (cleanUrl.startsWith('/uploads/')) return `${BACKEND_URL}${cleanUrl}`;
+    if (cleanUrl.includes('/embed/')) {
+      const separator = cleanUrl.includes('?') ? '&' : '?';
+      return `${cleanUrl}${separator}autoplay=1&playsinline=1&enablejsapi=1`;
     }
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
       let id = null;
-      if (url.includes('youtu.be')) {
-        id = url.split('/').pop();
-      } else if (url.includes('/shorts/')) {
-        id = url.split('/shorts/')[1]?.split('?')[0];
+      if (cleanUrl.includes('youtu.be')) {
+        id = cleanUrl.split('/').pop()?.split('?')[0];
+      } else if (cleanUrl.includes('/shorts/')) {
+        id = cleanUrl.split('/shorts/')[1]?.split('?')[0];
       } else {
-        id = url.split('v=')[1]?.split('&')[0];
+        id = cleanUrl.split('v=')[1]?.split('&')[0];
       }
       return id ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&enablejsapi=1&rel=0` : null;
     }
-    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&playsinline=1`;
-    return url;
+    if (cleanUrl.includes('vimeo.com')) return `https://player.vimeo.com/video/${cleanUrl.split('/').pop()?.split('?')[0]}?autoplay=1&playsinline=1`;
+    return cleanUrl;
   };
 
   const src = getEmbed(videoUrl);
