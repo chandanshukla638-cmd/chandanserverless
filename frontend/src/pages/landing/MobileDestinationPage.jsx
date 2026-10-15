@@ -48,9 +48,9 @@ const VideoPlayer = ({ videoUrl }) => {
       } else {
         id = url.split('v=')[1]?.split('&')[0];
       }
-      return id ? `https://www.youtube.com/embed/${id}?rel=0` : null;
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0` : null;
     }
-    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}`;
+    if (url.includes('vimeo.com')) return `https://player.vimeo.com/video/${url.split('/').pop()}?autoplay=1&playsinline=1`;
     return url;
   };
 
@@ -66,12 +66,13 @@ const VideoPlayer = ({ videoUrl }) => {
           <video
             src={src}
             controls
+            autoPlay
             playsInline
             onLoadedData={() => setLoaded(true)}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
-          <iframe src={src} title="Video" allow="autoplay; encrypted-media" allowFullScreen onLoad={() => setLoaded(true)} />
+          <iframe src={src} title="Video" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => setLoaded(true)} />
         )}
         {!loaded && <div className="ld-video-loader"><div className="ld-spinner-sm"></div></div>}
       </div>
