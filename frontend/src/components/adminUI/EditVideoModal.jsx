@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaTimes, FaCheck, FaVideo, FaUpload, FaFileVideo, FaLink, FaYoutube } from 'react-icons/fa';
 import api from '../../services/api';
-import { uploadVideoToSupabase } from '../../services/supabaseStorage';
+import { uploadVideoToCloudinary } from '../../services/cloudinaryUpload';
 import { toast } from 'react-toastify';
 import '../../styles/QRDownloadModal.css';
 
@@ -74,16 +74,23 @@ const EditVideoModal = ({ show, video, onClose }) => {
     setSaving(true);
     try {
       if (replaceMode && uploadType === 'file' && selectedFile) {
-        // Upload directly to Supabase Storage
-        const publicVideoUrl = await uploadVideoToSupabase(selectedFile);
+        // Direct to Cloudinary
+        const cldRes = await uploadVideoToCloudinary(selectedFile);
         const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
-        const fileExt = selectedFile.name.split('.').pop() || 'mp4';
+        const fileExt = cldRes.format || selectedFile.name.split('.').pop() || 'mp4';
+
+        let durationFormatted = videoDuration;
+        if (!durationFormatted && cldRes.duration) {
+          const mins = Math.floor(cldRes.duration / 60);
+          const secs = Math.floor(cldRes.duration % 60).toString().padStart(2, '0');
+          durationFormatted = `${mins}:${secs}`;
+        }
 
         const payload = {
           name: videoName || selectedFile.name.replace(/\.[^/.]+$/, ''),
-          video_url: publicVideoUrl,
+          video_url: cldRes.secure_url,
           video_type: fileExt,
-          duration: videoDuration || '--:--',
+          duration: durationFormatted || '--:--',
           size: fileSizeMB,
         };
 
