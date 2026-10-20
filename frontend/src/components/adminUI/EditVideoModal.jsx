@@ -79,7 +79,10 @@ const EditVideoModal = ({ show, video, onClose }) => {
         if (videoDuration) formData.append('duration', videoDuration);
         
         await api.put(`/video/${video.id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 0,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
         });
       } else if (replaceMode && uploadType === 'url' && videoUrl) {
         let finalUrl = videoUrl;

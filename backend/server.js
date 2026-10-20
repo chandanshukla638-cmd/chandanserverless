@@ -132,7 +132,7 @@ import { runMigrations } from './migrations/run.js';
 import { seed } from './seeds/seed.js';
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, async () => {
+  const server = app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
     try {
       await db.query('SELECT NOW()');
@@ -145,6 +145,11 @@ if (!process.env.VERCEL) {
       console.error('Database connection error:', err.message);
     }
   });
+
+  // Set timeout to 10 minutes for large video uploads
+  server.timeout = 10 * 60 * 1000;
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
 }
 
 export default app;

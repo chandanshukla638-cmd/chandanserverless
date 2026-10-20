@@ -69,6 +69,9 @@ const VideoUploadModal = ({ show, onClose }) => {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 0,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
         });
       } else {
         let finalUrl = videoUrl;
