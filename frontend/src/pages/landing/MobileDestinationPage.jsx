@@ -62,18 +62,48 @@ const VideoPlayer = ({ videoUrl }) => {
   const src = getEmbed(videoUrl);
 
   useEffect(() => {
-    if (videoRef.current) {
-      const videoEl = videoRef.current;
-      videoEl.muted = true;
-      videoEl.setAttribute('muted', '');
-      videoEl.setAttribute('playsinline', '');
-      const playPromise = videoEl.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Autoplay prevented by browser:', err);
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    // Directly set unmuted
+    videoEl.muted = false;
+    videoEl.removeAttribute('muted');
+    videoEl.setAttribute('playsinline', '');
+
+    const playPromise = videoEl.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // If browser strictly blocks unmuted autoplay, start muted so video doesn't freeze
+        videoEl.muted = true;
+        videoEl.play().catch((err) => {
+          console.warn('Autoplay prevented:', err);
         });
-      }
+      });
     }
+
+    // Completely invisible auto-unmute: as soon as user touches or scrolls the page, sound turns on seamlessly without any button
+    const handleInvisibleUnmute = () => {
+      if (videoRef.current && videoRef.current.muted) {
+        videoRef.current.muted = false;
+        videoRef.current.removeAttribute('muted');
+      }
+      window.removeEventListener('touchstart', handleInvisibleUnmute);
+      window.removeEventListener('touchend', handleInvisibleUnmute);
+      window.removeEventListener('click', handleInvisibleUnmute);
+      window.removeEventListener('scroll', handleInvisibleUnmute);
+    };
+
+    window.addEventListener('touchstart', handleInvisibleUnmute, { passive: true });
+    window.addEventListener('touchend', handleInvisibleUnmute, { passive: true });
+    window.addEventListener('click', handleInvisibleUnmute, { passive: true });
+    window.addEventListener('scroll', handleInvisibleUnmute, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleInvisibleUnmute);
+      window.removeEventListener('touchend', handleInvisibleUnmute);
+      window.removeEventListener('click', handleInvisibleUnmute);
+      window.removeEventListener('scroll', handleInvisibleUnmute);
+    };
   }, [src]);
 
   if (!src) return <div className="ld-video-empty"><FaPlay /><span>Video not available</span></div>;
@@ -89,7 +119,6 @@ const VideoPlayer = ({ videoUrl }) => {
             src={src}
             controls
             autoPlay
-            muted
             playsInline
             preload="auto"
             onLoadedData={() => setLoaded(true)}
