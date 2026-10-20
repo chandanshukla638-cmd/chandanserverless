@@ -34,6 +34,7 @@ const ErrorScreen = ({ message, onRetry }) => (
 
 const VideoPlayer = ({ videoUrl }) => {
   const [loaded, setLoaded] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const videoRef = React.useRef(null);
 
   const getEmbed = (url) => {
@@ -61,19 +62,57 @@ const VideoPlayer = ({ videoUrl }) => {
 
   const src = getEmbed(videoUrl);
 
-  useEffect(() => {
+  const toggleSound = (e) => {
+    if (e) e.stopPropagation();
     if (videoRef.current) {
-      const videoEl = videoRef.current;
-      videoEl.muted = true;
-      videoEl.setAttribute('muted', '');
-      videoEl.setAttribute('playsinline', '');
-      const playPromise = videoEl.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Autoplay prevented by browser:', err);
-        });
-      }
+      videoRef.current.muted = false;
+      videoRef.current.play().catch(() => {});
+      setIsMuted(false);
     }
+  };
+
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    // First attempt: try playing unmuted (with sound)
+    videoEl.muted = false;
+    videoEl.setAttribute('playsinline', '');
+    const playPromise = videoEl.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          // Unmuted autoplay succeeded!
+          setIsMuted(false);
+        })
+        .catch(() => {
+          // Browser blocked unmuted autoplay -> fallback to muted autoplay
+          videoEl.muted = true;
+          setIsMuted(true);
+          videoEl.play().catch((err) => {
+            console.warn('Autoplay prevented:', err);
+          });
+        });
+    }
+
+    // Also auto-unmute on user's first touch/click anywhere on page
+    const handleFirstInteraction = () => {
+      if (videoRef.current && videoRef.current.muted) {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+
+    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+    window.addEventListener('click', handleFirstInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    };
   }, [src]);
 
   if (!src) return <div className="ld-video-empty"><FaPlay /><span>Video not available</span></div>;
@@ -82,14 +121,13 @@ const VideoPlayer = ({ videoUrl }) => {
 
   return (
     <div className="ld-video">
-      <div className="ld-video-inner">
+      <div className="ld-video-inner" onClick={isMuted ? toggleSound : undefined}>
         {isMp4 ? (
           <video
             ref={videoRef}
             src={src}
             controls
             autoPlay
-            muted
             playsInline
             preload="auto"
             onLoadedData={() => setLoaded(true)}
@@ -105,6 +143,33 @@ const VideoPlayer = ({ videoUrl }) => {
           />
         )}
         {!loaded && <div className="ld-video-loader"><div className="ld-spinner-sm"></div></div>}
+        {isMuted && loaded && isMp4 && (
+          <button
+            type="button"
+            onClick={toggleSound}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              zIndex: 10,
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '20px',
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+          >
+            🔊 Tap to Unmute
+          </button>
+        )}
       </div>
     </div>
   );
