@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { FaTimes, FaUpload, FaVideo, FaLink, FaYoutube, FaCheck, FaSpinner, FaFileVideo } from 'react-icons/fa';
 import api from '../../services/api';
+import { uploadVideoToSupabase } from '../../services/supabaseStorage';
 import { toast } from 'react-toastify';
 import '../../styles/QRDownloadModal.css';
 
@@ -60,19 +61,20 @@ const VideoUploadModal = ({ show, onClose }) => {
     setUploading(true);
     try {
       if (uploadType === 'file' && selectedFile) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('name', videoName || selectedFile.name.replace(/\.[^/.]+$/, ''));
-        if (videoDuration) formData.append('duration', videoDuration);
-        
-        await api.post('/video/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: 0,
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        });
+        // Upload directly to Supabase Storage - 0% timeout, 0% Vercel limit error
+        const publicVideoUrl = await uploadVideoToSupabase(selectedFile);
+        const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
+        const fileExt = selectedFile.name.split('.').pop() || 'mp4';
+
+        const payload = {
+          name: videoName || selectedFile.name.replace(/\.[^/.]+$/, ''),
+          video_url: publicVideoUrl,
+          video_type: fileExt,
+          duration: videoDuration || '--:--',
+          size: fileSizeMB,
+        };
+
+        await api.post('/video/upload', payload);
       } else {
         let finalUrl = videoUrl;
         

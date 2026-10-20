@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaTimes, FaCheck, FaVideo, FaUpload, FaFileVideo, FaLink, FaYoutube } from 'react-icons/fa';
 import api from '../../services/api';
+import { uploadVideoToSupabase } from '../../services/supabaseStorage';
 import { toast } from 'react-toastify';
 import '../../styles/QRDownloadModal.css';
 
@@ -73,17 +74,20 @@ const EditVideoModal = ({ show, video, onClose }) => {
     setSaving(true);
     try {
       if (replaceMode && uploadType === 'file' && selectedFile) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('name', videoName);
-        if (videoDuration) formData.append('duration', videoDuration);
-        
-        await api.put(`/video/${video.id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 0,
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        });
+        // Upload directly to Supabase Storage
+        const publicVideoUrl = await uploadVideoToSupabase(selectedFile);
+        const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
+        const fileExt = selectedFile.name.split('.').pop() || 'mp4';
+
+        const payload = {
+          name: videoName || selectedFile.name.replace(/\.[^/.]+$/, ''),
+          video_url: publicVideoUrl,
+          video_type: fileExt,
+          duration: videoDuration || '--:--',
+          size: fileSizeMB,
+        };
+
+        await api.put(`/video/${video.id}`, payload);
       } else if (replaceMode && uploadType === 'url' && videoUrl) {
         let finalUrl = videoUrl;
         
