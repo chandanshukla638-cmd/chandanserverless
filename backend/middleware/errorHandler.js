@@ -4,6 +4,9 @@ export const errorHandler = (err, req, res, _next) => {
   if (err.name === 'ValidationError') {
     return res.status(400).json({ error: err.message });
   }
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ error: `File upload error: ${err.message}` });
+  }
   if (err.name === 'UnauthorizedError' || err.name === 'JsonWebTokenError') {
     return res.status(401).json({ error: 'Invalid token.' });
   }

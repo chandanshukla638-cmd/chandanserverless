@@ -14,9 +14,13 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'akksys_uploads',
-    resource_type: 'auto', // Supports both images and videos
+  params: async (req, file) => {
+    const isVideo = file.mimetype && file.mimetype.startsWith('video');
+    return {
+      folder: 'akksys_uploads',
+      resource_type: isVideo ? 'video' : 'auto',
+      allowed_formats: isVideo ? ['mp4', 'mov', 'webm', 'mkv', 'avi'] : ['jpg', 'png', 'jpeg', 'webp', 'svg'],
+    };
   },
 });
 
